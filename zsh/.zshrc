@@ -171,5 +171,7 @@ bindkey -M vicmd 'V' edit-command-line
 # Re-Set alt+backspace to delete word
 bindkey '^[^?' backward-kill-word
 
+alias vim=nvim
+
 # Prevent duplicates of PATH variables
 typeset -U PATH
