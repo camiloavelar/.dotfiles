@@ -173,5 +173,8 @@ bindkey '^[^?' backward-kill-word
 
 alias vim=nvim
 
+export PATH=~/.local/.npm-global/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
+
 # Prevent duplicates of PATH variables
 typeset -U PATH
