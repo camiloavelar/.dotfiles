@@ -103,7 +103,7 @@ bindsym $mod+a focus parent
 set $ws1 "1:  Terminal "
 set $ws2 "2:   Browser"
 set $ws3 "3:  Communication"
-set $ws4 "4"
+set $ws4 "4:  Requests"
 set $ws5 "5"
 set $ws6 "6"
 set $ws7 "7"
@@ -114,7 +114,7 @@ set $ws10 "10"
 workspace "1:  Terminal " output primary
 workspace "2:   Browser" output primary
 workspace "3:  Communication" output eDP-1 primary
-workspace "4" output primary
+workspace "4:  Requests" output primary
 workspace "5" output primary
 workspace "6" output eDP-1 primary
 workspace "7" output primary
@@ -261,5 +261,6 @@ for_window [class="Gnome-terminal"] move to workspace $ws1
 for_window [class="Brave-browser"] move to workspace $ws2
 for_window [class="discord"] move to workspace $ws3
 for_window [class="teams-for-linux"] move to workspace $ws3
+for_window [class="Insomnia"] move to workspace $ws4
 
 exec_always --no-startup-id ~/.config/i3/bin/xinput.sh
