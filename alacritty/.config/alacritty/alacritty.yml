@@ -1,6 +1,6 @@
 colors: # Tokyonight_night
   primary:
-    background: '0x000000' # default value : '0x1a1b26' 
+    background: '0x1a1b26' # default value : '0x1a1b26' 
     foreground: '0xc0caf5'
 
   normal:
@@ -49,7 +49,7 @@ font:
 window:
   dynamic_padding: true
   decorations: none
-  opacity: 0.45
+  opacity: 0.8
     
 scrolling:
   history: 10000
