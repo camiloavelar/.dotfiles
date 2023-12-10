@@ -49,7 +49,7 @@ font:
 window:
   dynamic_padding: true
   decorations: none
-  opacity: 0.8
+  opacity: 0.96
     
 scrolling:
   history: 10000
