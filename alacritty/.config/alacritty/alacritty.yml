@@ -1,6 +1,6 @@
 colors: # Tokyonight_night
   primary:
-    background: '0x1a1b26' # default value : '0x1a1b26' 
+    background: '0x000000' # default value : '0x1a1b26' 
     foreground: '0xc0caf5'
 
   normal:
@@ -44,12 +44,12 @@ font:
     family: MesloLGL Nerd Font Mono
     style: Bold Italic
 
-  size: 8
+  size: 9
 
 window:
   dynamic_padding: true
   decorations: none
-  opacity: 0.96
+  opacity: 0.90
     
 scrolling:
   history: 10000
