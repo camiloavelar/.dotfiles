@@ -95,10 +95,6 @@ alias repo='cd $HOME/Documents/repositories'
 alias temp='cd $HOME/Downloads/temp'
 alias update='for SUBC in update upgrade autoremove autoclean; do sudo apt ${SUBC} -y; done'
 
-# Completions.
-autoload -Uz compinit && compinit
-zle_highlight=('paste:none')
-
 # Functions
 # cd to the project
 cd-to-project() {
@@ -141,6 +137,8 @@ knownrm() {
 # Load Oh-my-zsh.
 # shellcheck disable=SC1091
 source "$ZSH/oh-my-zsh.sh"
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Override Oh-my-zsh Aliases.
 #alias ls='exa --icons'                                 # default view
