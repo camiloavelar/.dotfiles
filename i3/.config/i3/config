@@ -234,7 +234,9 @@ bar {
 # ------------------------------------------
 #exec --no-startup-id nm-applet
 
-bindsym $mod+Shift+s exec --no-startup-id ~/.dotfiles/bin/monitor
+bindsym $mod+Shift+d exec --no-startup-id ~/.dotfiles/bin/monitor-dual
+bindsym $mod+Shift+s exec --no-startup-id ~/.dotfiles/bin/monitor-single
+bindsym $mod+Shift+a exec --no-startup-id xrandr --auto
 #bindsym $mod+Shift+n exec --no-startup-id ~/dotfiles/bin/resolution
 
 # FKeys
