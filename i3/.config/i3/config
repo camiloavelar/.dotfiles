@@ -258,7 +258,12 @@ bindsym $mod+m move workspace to output left
 # Suspend
 bindsym $mod+Shift+period exec systemctl suspend
 
+#interactive screenshot by pressing printscreen
+bindsym Print exec gnome-screenshot -i 
+#crop-area screenshot by pressing Mod + printscreen
+bindsym $mod+Ctrl+s exec gnome-screenshot -a
 # Allocate applications to workspace
+
 for_window [class="Gnome-terminal"] move to workspace $ws1
 for_window [class="Alacritty"] move to workspace $ws1
 for_window [class="Brave-browser"] move to workspace $ws2
