@@ -56,11 +56,23 @@ plugins=(asdf
   tmux
   vi-mode)
 
-# Set history settings.
-HISTFILE=~/.histfile
-HISTSIZE=1000
-# shellcheck disable=SC2034
+# history setup
+HISTFILE=$HOME/.zhistory
 SAVEHIST=1000
+HISTSIZE=999
+setopt share_history
+setopt hist_expire_dups_first
+setopt hist_ignore_dups
+setopt hist_verify
+
+# ---- Eza (better ls) -----
+
+alias ls="eza --icons=always"
+
+# ---- Zoxide (better cd) ----
+eval "$(zoxide init zsh)"
+
+alias cd="z"
 
 # Set fzf options
 export FZF_DEFAULT_COMMAND='find .'
