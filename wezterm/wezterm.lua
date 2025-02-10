@@ -8,10 +8,11 @@ config.font = wezterm.font_with_fallback({
 	{ family = "MesloLGL Nerd Font", weight = "Regular" },
 })
 config.font_size = 16
+-- config.font_size = 40
 config.color_scheme = "Catppuccin Mocha"
+config.native_macos_fullscreen_mode = true
 config.enable_tab_bar = false
-config.window_background_opacity = 1
-config.window_background_opacity = 0.9
+-- config.window_background_opacity = 0.9
 config.disable_default_key_bindings = true
 config.window_decorations = "RESIZE"
 config.colors = {
@@ -43,6 +44,7 @@ config.keys = {
 	{ key = "v", mods = "SUPER", action = act.PasteFrom("Clipboard") },
 	{ key = "=", mods = "CTRL", action = wezterm.action.IncreaseFontSize },
 	{ key = "-", mods = "CTRL", action = wezterm.action.DecreaseFontSize },
+	{ key = "0", mods = "CTRL", action = wezterm.action.ResetFontSize },
 }
 
 return config
