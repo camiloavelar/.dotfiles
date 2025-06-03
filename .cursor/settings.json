@@ -1,0 +1,124 @@
+{
+    "editor.fontSize": 13,
+    "window.commandCenter": true,
+    "cursor.diffs.useCharacterLevelDiffs": true,
+    "workbench.editor.enablePreview": true,
+    "workbench.editor.enablePreviewFromQuickOpen": true,
+    "vim.enabled": true,
+    "vim.useSystemClipboard": true,
+    "workbench.iconTheme": "material-icon-theme",
+    "sync.autoUpload": true,
+    "editor.background": "#000000",
+    "editor.semanticHighlighting.enabled": true,
+    "vim.leader": "<space>",
+    "vim.handleKeys": {
+        "<C-d>": true,
+        "<C-u>": true,
+        "<C-f>": true,
+        "<C-b>": true,
+        "<C-h>": true,
+        "<C-j>": true,
+        "<C-k>": true,
+        "<C-l>": true
+    },
+    "vim.normalModeKeyBindings": [
+        {
+            "before": ["<C-h>"],
+            "commands": ["workbench.action.previousEditor"]
+        },
+        {
+            "before": ["<C-l>"],
+            "commands": ["workbench.action.nextEditor"]
+        },
+        {
+            "before": ["<C-w>", "h"],
+            "commands": ["workbench.action.focusPreviousGroup"]
+        },
+        {
+            "before": ["<C-w>", "l"],
+            "commands": ["workbench.action.focusNextGroup"]
+        },
+        {
+            "before": ["ctrl", "o"],
+            "commands": ["workbench.action.navigateBack"]
+        },
+        {
+            "before": ["ctrl", "i"],
+            "commands": ["workbench.action.navigateForward"]
+        },
+        {
+            "before": ["shift", "k"],
+            "commands": ["editor.action.showHover"]
+        },
+        {
+            "before": ["leader", "g", "d"],
+            "commands": ["editor.action.revealDefinition"]
+        },
+        {
+            "before": ["leader", "r", "n"],
+            "commands": ["editor.action.rename"]
+        },
+        {
+            "before": ["leader", "c", "a"],
+            "commands": ["editor.action.quickFix"]
+        },
+        {
+            "before": ["leader", "f", "d"],
+            "commands": ["editor.action.goToReferences"]
+        },
+        {
+            "before": ["leader", "f", "m"],
+            "commands": ["outline.focus"]
+        },
+        {
+            "before": ["leader", "c", "c"],
+            "commands": ["workbench.action.toggleAuxiliaryBar"]
+        },
+        {
+            "before": ["leader", "e", "e"],
+            "commands": ["workbench.action.toggleSidebarVisibility"],
+        },
+        {
+            "before": ["leader", "e", "e"],
+            "commands": ["workbench.action.toggleSidebarVisibility"],
+            "when": "sideBarVisible",
+        },
+        {
+            "before": ["leader", "a"],
+            "commands": ["vscode-harpoon.addEditor"]
+        },
+        {
+            "before": ["leader", "p", "e"],
+            "commands": ["vscode-harpoon.editorQuickPick"]
+        },
+        {
+            "before": ["leader", "1"],
+            "commands": ["vscode-harpoon.gotoEditor1"]
+        },
+        {
+            "before": ["leader", "2"],
+            "commands": ["vscode-harpoon.gotoEditor2"]
+        },
+        {
+            "before": ["leader", "3"],
+            "commands": ["vscode-harpoon.gotoEditor3"]
+        },
+        {
+            "before": ["leader", "4"],
+            "commands": ["vscode-harpoon.gotoEditor4"]
+        }
+    ],
+    "vim.visualModeKeyBindings": [
+        {
+            "before": ["K"],
+            "commands": ["editor.action.moveLinesUpAction"]
+        },
+        {
+            "before": ["J"],
+            "commands": ["editor.action.moveLinesDownAction"]
+        }
+    ],
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.value": 6,
+    "workbench.colorTheme": "Cursor Dark High Contrast"
+}
