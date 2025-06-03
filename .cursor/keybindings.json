@@ -1,0 +1,30 @@
+[
+    {
+        "key": "cmd+i",
+        "command": "composerMode.agent"
+    },
+    {
+        "key": "r",
+        "command": "renameFile",
+        "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
+    },
+    {
+        "key": "enter",
+        "command": "-renameFile",
+        "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
+    },
+    {
+        "key": "e c",
+        "command": "workbench.files.action.collapseExplorerFolders",
+        "when": "filesExplorerFocus && foldersViewVisible"
+    },
+    {
+        "key": "ctrl+c",
+        "command": "workbench.action.closeSidebar",
+        "when": "filesExplorerFocus"
+    },
+    {
+        "key": "ctrl+e",
+        "command": "vscode-harpoon.editEditors"
+    }
+]
