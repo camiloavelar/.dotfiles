@@ -10,14 +10,15 @@
 		"clock"
 	],
 	"modules-right": [
+		"bluetooth",
 		"network",
 		"cpu",
 		"memory",
-		"bluetooth",
+		"temperature",
 		"pulseaudio",
 		"backlight",
 		"battery",
-		"custom/lock"
+		"group/group-power"
 	],
 	"include": [
 		"~/.config/waybar/modules.jsonc"

@@ -29,6 +29,36 @@
     padding: 0 10px;
 }
 
+#group-power {
+  border-radius: 24px;
+  background: #babbf1;
+  color: #0d1117;
+}
+
+#custom-power {
+  font-size: 12.5px;
+  min-width: 28px;
+}
+
+#custom-lock,
+#custom-quit,
+#custom-suspend,
+#custom-reboot,
+#idle_inhibitor {
+  margin: 0 10px 0 10px;
+  font-size: 12.5px;
+}
+
+#custom-power:hover,
+#custom-lock:hover,
+#custom-quit:hover,
+#custom-suspend:hover,
+#custom-reboot:hover,
+#idle_inhibitor:hover {
+    color: #1793d1;
+}
+
+
 #workspaces {
     border-radius: 16px 24px 24px 16px;
     margin: 0;
@@ -63,25 +93,29 @@
 #pulseaudio,
 #network,
 #cpu,
-#memory,
-#custom-lock,
-#custom-external-ip,
-#custom-power {
+#memory {
   padding: 0.5rem 0.5rem;
-  margin: 2px 0;
   border-radius: 0px 5px 5px 0px;
 }
 
 #battery {
-  color: #a6d189;
+  color: #c6d0f5;
 }
 
-#battery.charging {
+#battery.full {
+  color: #c6d0f5;
+}
+
+#battery.good:not(.charging) {
   color: #a6d189;
 }
 
 #battery.warning:not(.charging) {
   color: #e78284;
+}
+
+#battery.critical:not(.charging) {
+  color: #D22B2B;
 }
 
 #backlight {
@@ -98,17 +132,8 @@
   border-radius: 5px;
 }
 
-#custom-lock {
-  border-radius: 5px 0px 0px 5px;
-  color: #babbf1;
+#pulseaudio {
   margin-left: 1rem;
-  border-radius: 5px;
-}
-
-#custom-power {
-  margin-right: 1rem;
-  border-radius: 0px 5px 5px 0px;
-  color: #e78284;
 }
 
 #custom-arch {
