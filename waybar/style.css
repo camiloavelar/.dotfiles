@@ -30,9 +30,10 @@
 }
 
 #group-power {
-  border-radius: 24px;
+  border-radius: 12px;
   background: #babbf1;
   color: #0d1117;
+  padding: 5px;
 }
 
 #custom-power {

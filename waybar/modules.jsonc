@@ -51,7 +51,7 @@
 	"bluetooth": {
 		"format": " 󰂯 ",
 		"tooltip": true,
-		"tooltip-format": "Configurações Bluetooth",
+		"tooltip-format": "Bluetooth settings",
 		"on-click": "kitty --title '󰂯  Bluetooth TUI' bash -c bluetui"
 	},
 	"clock": {
@@ -59,14 +59,6 @@
 		"tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
 		"format": " {:%Y-%m-%d  %H:%M}"
 	},
-	// "network": {
-	// 	"format-wifi": "  {essid} ({signalStrength}%)",
-	// 	"format-ethernet": "󰈀 ",
-	// 	"format-disconnected": "󰤠 ",
-	// 	"tooltip-format": "{ifname} via {gwaddr} ",
-	// 	"interval": 5,
-	// 	"on-click": "kitty nmtui"
-	// },
 	"network": {
 		"family": "ipv4",
 		"format": "{ifname} [󰾆 {bandwidthTotalBytes}]",
@@ -182,6 +174,6 @@
 	"custom/power": {
 		"format": "",
 		"tooltip": false,
-		"on-click": "shutdown now"
+    "on-click": "bash ~/.local/scripts/power_menu"
 	}
 }
