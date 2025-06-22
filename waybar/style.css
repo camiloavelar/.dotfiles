@@ -1,0 +1,150 @@
+* {
+  font-family: JetbrainsMono Nerd Font;
+  font-size: 10.5px;
+  min-height: 0;
+  padding-right: 1px;
+  padding-left: 1px;
+  padding-bottom: 0px;
+}
+
+#waybar {
+  background: transparent;
+  color: #c6d0f5;
+  margin: 2px 2px;
+}
+
+.modules-left,
+.modules-center,
+.modules-right
+{
+    background: rgba(0, 0, 8, .7);
+    margin: 5px 10px;
+    padding: 0 5px;
+    border-radius: 15px;
+}
+.modules-left {
+    padding: 0;
+}
+.modules-center {
+    padding: 0 10px;
+}
+
+#group-power {
+  border-radius: 12px;
+  background: #babbf1;
+  color: #0d1117;
+  padding: 5px;
+}
+
+#custom-power {
+  font-size: 12.5px;
+  min-width: 28px;
+}
+
+#custom-lock,
+#custom-quit,
+#custom-suspend,
+#custom-reboot,
+#idle_inhibitor {
+  margin: 0 10px 0 10px;
+  font-size: 12.5px;
+}
+
+#custom-power:hover,
+#custom-lock:hover,
+#custom-quit:hover,
+#custom-suspend:hover,
+#custom-reboot:hover,
+#idle_inhibitor:hover {
+    color: #1793d1;
+}
+
+
+#workspaces {
+    border-radius: 16px 24px 24px 16px;
+    margin: 0;
+}
+
+#workspaces button {
+    min-width: 28px;
+    border-radius: 20px;
+    margin: 8px 0;
+    padding: 2px;
+}
+
+#workspaces button:not(:last-child) {
+    margin-right: 4px;
+}
+
+#workspaces button:hover {
+    background: #85c1dc;
+    color: #0d1117;
+}
+
+#workspaces button.active,
+#workspaces button.active:hover {
+    background: #babbf1;
+    color: #0d1117;
+}
+
+#custom-music,
+#backlight,
+#clock,
+#battery,
+#pulseaudio,
+#network,
+#cpu,
+#memory {
+  padding: 0.5rem 0.5rem;
+  border-radius: 0px 5px 5px 0px;
+}
+
+#battery {
+  color: #c6d0f5;
+}
+
+#battery.full {
+  color: #c6d0f5;
+}
+
+#battery.good:not(.charging) {
+  color: #a6d189;
+}
+
+#battery.warning:not(.charging) {
+  color: #e78284;
+}
+
+#battery.critical:not(.charging) {
+  color: #D22B2B;
+}
+
+#backlight {
+  color: #e5c890;
+}
+
+#backlight,
+#battery {
+  border-radius: 0;
+}
+
+#custom-music {
+  color: #ca9ee6;
+  border-radius: 5px;
+}
+
+#pulseaudio {
+  margin-left: 1rem;
+}
+
+#custom-arch {
+    margin-left: 5px;
+    padding: 0 10px;
+    transition: color .5s;
+}
+#custom-arch:hover {
+    color: #1793d1;
+}
+#bluetooth:hover {
+    color: #1793d1;
+}
