@@ -1,16 +1,19 @@
 {
-    "editor.fontSize": 13,
     "window.commandCenter": true,
     "cursor.diffs.useCharacterLevelDiffs": true,
     "workbench.editor.enablePreview": true,
     "workbench.editor.enablePreviewFromQuickOpen": true,
     "vim.enabled": true,
     "vim.useSystemClipboard": true,
-    "workbench.iconTheme": "material-icon-theme",
+    "workbench.iconTheme": "catppuccin noctis icons",
     "sync.autoUpload": true,
     "editor.background": "#000000",
     "editor.semanticHighlighting.enabled": true,
+    "editor.lineNumbers": "relative",
     "vim.leader": "<space>",
+    "vim.highlightedyank.enable": true,
+    "vim.highlightedyank.color": "rgba(250, 240, 170, 0.5)",
+    "vim.highlightedyank.duration": 200,
     "vim.handleKeys": {
         "<C-d>": true,
         "<C-u>": true,
@@ -39,14 +42,6 @@
             "commands": ["workbench.action.focusNextGroup"]
         },
         {
-            "before": ["ctrl", "o"],
-            "commands": ["workbench.action.navigateBack"]
-        },
-        {
-            "before": ["ctrl", "i"],
-            "commands": ["workbench.action.navigateForward"]
-        },
-        {
             "before": ["shift", "k"],
             "commands": ["editor.action.showHover"]
         },
@@ -60,7 +55,7 @@
         },
         {
             "before": ["leader", "c", "a"],
-            "commands": ["editor.action.quickFix"]
+            "commands": ["editor.action.codeAction"]
         },
         {
             "before": ["leader", "f", "d"],
@@ -68,7 +63,11 @@
         },
         {
             "before": ["leader", "f", "m"],
-            "commands": ["outline.focus"]
+            "commands": ["workbench.action.gotoSymbol"]
+        },
+        {
+            "before": ["leader", "f", "g"],
+            "commands": ["workbench.action.quickTextSearch"]
         },
         {
             "before": ["leader", "c", "c"],
@@ -106,6 +105,18 @@
         {
             "before": ["leader", "4"],
             "commands": ["vscode-harpoon.gotoEditor4"]
+        },
+        {
+            "before": ["leader", "g", "i"],
+            "commands": ["editor.action.goToImplementation"]
+        },
+        {
+            "before": ["K"],
+            "commands": ["editor.action.showHover"]
+        },
+        {
+            "before": ["<C-p>"],
+            "commands": ["workbench.action.quickOpen"]
         }
     ],
     "vim.visualModeKeyBindings": [
@@ -120,5 +131,54 @@
     ],
     "workbench.editor.limit.enabled": true,
     "workbench.editor.limit.value": 6,
-    "workbench.colorTheme": "Cursor Dark High Contrast"
+    "workbench.colorTheme": "Catppuccin Mocha",
+    "go.toolsManagement.autoUpdate": true,
+    "extensions.ignoreRecommendations": true,
+    "githubLocalActions.dockerDesktopPath": "/Applications/Docker.app",
+    "catppuccin-noctis-icons.hidesExplorerArrows": false,
+    "editor.fontFamily": "JetBrainsMono Nerd Font",
+    "terminal.integrated.profiles.osx": {
+        "bash": {
+            "path": "bash",
+            "args": [
+                "-l"
+            ],
+            "icon": "terminal-bash"
+        },
+        "zsh": {
+            "path": "zsh",
+            "args": [
+                "-l"
+            ]
+        },
+        "fish": {
+            "path": "fish",
+            "args": [
+                "-l"
+            ]
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        },
+        "pwsh": {
+            "path": "pwsh",
+            "icon": "terminal-powershell"
+        }
+    },
+    "terminal.integrated.defaultProfile.osx": "bash",
+    "workbench.list.automaticKeyboardNavigation": false,
+    "workbench.list.keyboardNavigation": "simple",
+    "vim.insertModeKeyBindings": [
+        {
+            "before": ["<C-j>"],
+            "commands": ["selectNextSuggestion"],
+            "when": "suggestWidgetVisible"
+        },
+        {
+            "before": ["<C-k>"],
+            "commands": ["selectPrevSuggestion"],
+            "when": "suggestWidgetVisible"
+        }
+    ]
 }
