@@ -117,6 +117,18 @@
         {
             "before": ["<C-p>"],
             "commands": ["workbench.action.quickOpen"]
+        },
+        {
+            "before": ["leader", "w", "o"],
+            "commands": ["workbench.action.closeOtherEditors"]
+        },
+        {
+            "before": ["leader", "w", "r"],
+            "commands": ["workbench.action.closeEditorsToTheRight"]
+        },
+        {
+            "before": ["leader", "w", "l"],
+            "commands": ["workbench.action.closeEditorsToTheLeft"]
         }
     ],
     "vim.visualModeKeyBindings": [
@@ -131,7 +143,7 @@
     ],
     "workbench.editor.limit.enabled": true,
     "workbench.editor.limit.value": 6,
-    "workbench.colorTheme": "Catppuccin Mocha",
+    "workbench.colorTheme": "Catppuccin Macchiato",
     "go.toolsManagement.autoUpdate": true,
     "extensions.ignoreRecommendations": true,
     "githubLocalActions.dockerDesktopPath": "/Applications/Docker.app",
