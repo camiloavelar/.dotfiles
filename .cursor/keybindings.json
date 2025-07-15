@@ -69,5 +69,13 @@
         "key": "ctrl+c",
         "command": "hideCodeActionWidget",
         "when": "codeActionMenuVisible"
+    },
+    {
+        "key": "cmd+e",
+        "command": "workbench.action.focusActiveEditorGroup"
+    },
+    {
+        "key": "cmd+shift+e",
+        "command": "workbench.files.action.focusFilesExplorer"
     }
 ]
