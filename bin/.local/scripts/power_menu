@@ -1,0 +1,15 @@
+#!/bin/sh
+
+choice=$(printf "  Lock\n  Kill User Session\n󰍛  Suspend\n󰑙  Reboot\n  Power Off" | wofi --dmenu)
+
+if [[ $choice == "  Lock" ]];then
+	sh -c '(sleep 0.5s; hyprlock)' & disown
+elif [[ $choice == "  Kill User Session" ]];then
+  pkill -KILL -u "$USER"
+elif [[ $choice == "󰍛  Suspend" ]];then
+  systemctl suspend
+elif [[ $choice == "󰑙  Reboot" ]];then
+  shutdown -r now
+elif [[ $choice == "  Power Off" ]];then
+  shutdown now
+fi
