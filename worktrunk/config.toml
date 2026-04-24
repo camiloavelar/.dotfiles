@@ -1,0 +1,18 @@
+[[pre-start]]
+mise-cleanup = '''
+dir="$HOME/.local/state/mise/tracked-configs"
+if [ -d "$dir" ]; then
+  for f in "$dir"/*; do
+    [ -L "$f" ] || continue
+    case "$(readlink "$f")" in
+      "{{ worktree_path }}"/*) rm -f -- "$f" ;;
+    esac
+  done
+fi
+'''
+
+[[pre-start]]
+mise-trust = "test -f mise.toml && mise trust mise.toml 2>/dev/null || true"
+
+[[pre-start]]
+copy-ignored = "wt step copy-ignored"
