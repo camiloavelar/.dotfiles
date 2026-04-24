@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "tmux-worktrunk: not inside a git repository" >&2
+    exit 1
+}
+
+cd "$repo_root"
+
+new_entry="[+ new worktree]"
+
+raw=$(
+    {
+        printf '%s\t\t%s\n' "$new_entry" "$new_entry"
+        wt list --format=json | jq -r '
+            .[]
+            | ((now - .commit.timestamp)) as $s
+            | (if $s < 3600 then "\($s/60|floor)m"
+               elif $s < 86400 then "\($s/3600|floor)h"
+               else "\($s/86400|floor)d" end) as $age
+            | "\(.branch)\t\(.path)\t\(.statusline // .branch)  [2m\($age) · \(.commit.message[0:60])[22m"
+        '
+    } | fzf \
+        --ansi \
+        --delimiter=$'\t' \
+        --with-nth=3 \
+        --expect=ctrl-d \
+        --header="enter: open  ctrl-d: remove  ($(basename "$repo_root"))"
+)
+
+if [[ -z $raw ]]; then
+    exit 0
+fi
+
+key=$(printf '%s\n' "$raw" | sed -n '1p')
+selection=$(printf '%s\n' "$raw" | sed -n '2p')
+
+if [[ -z $selection ]]; then
+    exit 0
+fi
+
+selected_branch=$(printf '%s' "$selection" | cut -f1)
+selected_path=$(printf '%s' "$selection" | cut -f2)
+
+if [[ $key == "ctrl-d" ]]; then
+    if [[ "$selected_branch" == "$new_entry" ]]; then
+        exit 0
+    fi
+    read -r -p "remove worktree '$selected_branch'? [y/N] " confirm
+    if [[ ! $confirm =~ ^[yY]$ ]]; then
+        exit 0
+    fi
+    session_to_kill=$(basename "$selected_path" | tr './' '__')
+    tmux kill-session -t "$session_to_kill" 2>/dev/null || true
+    if ! wt remove --yes "$selected_branch"; then
+        read -r -p "remove failed. retry with --force --force-delete? [y/N] " force
+        if [[ $force =~ ^[yY]$ ]]; then
+            wt remove --yes --force --force-delete "$selected_branch"
+        fi
+    fi
+    exit 0
+fi
+
+if [[ "$selected_branch" == "$new_entry" ]]; then
+    read -r -p "new branch: " new_branch
+    if [[ -z ${new_branch:-} ]]; then
+        exit 0
+    fi
+    wt switch --create "$new_branch"
+    selected_path=$(wt list --format=json | jq -r --arg b "$new_branch" '.[] | select(.branch == $b) | .path')
+    selected_branch=$new_branch
+fi
+
+if [[ -z $selected_path ]]; then
+    echo "tmux-worktrunk: could not resolve worktree path for '$selected_branch'" >&2
+    exit 1
+fi
+
+session_name=$(basename "$selected_path" | tr './' '__')
+tmux_running=$(pgrep tmux || true)
+
+build_session() {
+    local target=$1 path=$2
+    tmux new-session -ds "$target" -n "zsh" -c "$path"
+    tmux new-window -t "$target" -n "nvim" -c "$path"
+    tmux new-window -t "$target" -n "lazygit" -c "$path"
+    tmux new-window -t "$target" -n "claude" -c "$path"
+    tmux send-keys -t "$target:nvim" "nvim ." C-m
+    tmux send-keys -t "$target:lazygit" "lazygit" C-m
+    tmux send-keys -t "$target:claude" "claude" C-m
+}
+
+if tmux has-session -t="$session_name" 2>/dev/null; then
+    if ! tmux list-windows -t "$session_name" -F '#{window_name}' 2>/dev/null | grep -qx nvim; then
+        tmux kill-session -t "$session_name"
+    fi
+fi
+
+created=0
+if ! tmux has-session -t="$session_name" 2>/dev/null; then
+    build_session "$session_name" "$selected_path"
+    created=1
+fi
+
+if [[ $created -eq 1 ]]; then
+    target="$session_name:nvim"
+else
+    target="$session_name"
+fi
+
+if [[ -z ${TMUX:-} ]]; then
+    tmux attach-session -t "$target"
+else
+    tmux switch-client -t "$target"
+fi
