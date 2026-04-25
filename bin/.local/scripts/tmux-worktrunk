@@ -9,11 +9,16 @@ repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
 
 cd "$repo_root"
 
+from_pr=0
 new_entry="[+ new worktree]"
+remote_entry="[+ from remote]"
+pr_entry="[+ from open PR]"
 
 raw=$(
     {
         printf '%s\t\t%s\n' "$new_entry" "$new_entry"
+        printf '%s\t\t%s\n' "$remote_entry" "$remote_entry"
+        printf '%s\t\t%s\n' "$pr_entry" "$pr_entry"
         wt list --format=json | jq -r '
             .[]
             | ((now - .commit.timestamp)) as $s
@@ -68,9 +73,79 @@ if [[ "$selected_branch" == "$new_entry" ]]; then
     if [[ -z ${new_branch:-} ]]; then
         exit 0
     fi
-    wt switch --create "$new_branch"
+    wt --yes switch --create "$new_branch"
     selected_path=$(wt list --format=json | jq -r --arg b "$new_branch" '.[] | select(.branch == $b) | .path')
     selected_branch=$new_branch
+fi
+
+if [[ "$selected_branch" == "$remote_entry" ]]; then
+    if git remote get-url origin >/dev/null 2>&1; then
+        remote=origin
+    else
+        remote=$(git remote | awk 'NR==1')
+    fi
+    if [[ -z $remote ]]; then
+        echo "tmux-worktrunk: no git remote configured" >&2
+        exit 1
+    fi
+    existing=$(wt list --format=json | jq -r '.[].branch')
+    lsr_file=$(mktemp)
+    exclude_file=$(mktemp)
+    trap 'rm -f "$lsr_file" "$exclude_file"' EXIT
+    if ! git ls-remote --heads "$remote" > "$lsr_file"; then
+        echo "tmux-worktrunk: ls-remote $remote failed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    printf '%s\n' "$existing" > "$exclude_file"
+    remote_branch=$(
+        cut -f2 "$lsr_file" \
+            | cut -d/ -f3- \
+            | grep -vxFf "$exclude_file" \
+            | sort -u \
+            | fzf --header="remote branch on $remote (worktreed branches hidden)"
+    )
+    if [[ -z $remote_branch ]]; then
+        exit 0
+    fi
+    git fetch --quiet "$remote" "$remote_branch:refs/remotes/$remote/$remote_branch"
+    wt --yes switch "$remote_branch"
+    selected_path=$(wt list --format=json | jq -r --arg b "$remote_branch" '.[] | select(.branch == $b) | .path')
+    selected_branch=$remote_branch
+fi
+
+if [[ "$selected_branch" == "$pr_entry" ]]; then
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "tmux-worktrunk: gh CLI not installed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    pr_line=$(
+        gh pr list --state open --limit 200 \
+            --json number,title,headRefName,author \
+            --jq '.[] | "\(.number)\t\(.headRefName)\t#\(.number) [\(.author.login)] \(.title)"' \
+            | fzf --delimiter=$'\t' --with-nth=3 --header="open PRs"
+    )
+    if [[ -z $pr_line ]]; then
+        exit 0
+    fi
+    pr_num=$(printf '%s' "$pr_line" | cut -f1)
+    from_pr=1
+    before=$(wt list --format=json | jq -r '.[].path' | sort)
+    if ! wt --yes switch "pr:$pr_num" --no-cd; then
+        echo "tmux-worktrunk: wt switch pr:$pr_num failed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    after_json=$(wt list --format=json)
+    after=$(echo "$after_json" | jq -r '.[].path' | sort)
+    new_path=$(comm -13 <(echo "$before") <(echo "$after"))
+    if [[ -n $new_path ]]; then
+        selected_path=$new_path
+    else
+        selected_path=$(echo "$after_json" | jq -r '.[] | select(.is_current) | .path')
+    fi
+    selected_branch=$(echo "$after_json" | jq -r --arg p "$selected_path" '.[] | select(.path == $p) | .branch')
 fi
 
 if [[ -z $selected_path ]]; then
@@ -82,7 +157,7 @@ session_name=$(basename "$selected_path" | tr './' '__')
 tmux_running=$(pgrep tmux || true)
 
 build_session() {
-    local target=$1 path=$2
+    local target=$1 path=$2 with_pr=${3:-0}
     tmux new-session -ds "$target" -n "zsh" -c "$path"
     tmux new-window -t "$target" -n "nvim" -c "$path"
     tmux new-window -t "$target" -n "lazygit" -c "$path"
@@ -90,6 +165,10 @@ build_session() {
     tmux send-keys -t "$target:nvim" "nvim ." C-m
     tmux send-keys -t "$target:lazygit" "lazygit" C-m
     tmux send-keys -t "$target:claude" "claude" C-m
+    if [[ $with_pr -eq 1 ]]; then
+        tmux new-window -t "$target" -n "PR" -c "$path"
+        tmux send-keys -t "$target:PR" "nvim -c ':silent Octo pr'" C-m
+    fi
 }
 
 if tmux has-session -t="$session_name" 2>/dev/null; then
@@ -100,7 +179,7 @@ fi
 
 created=0
 if ! tmux has-session -t="$session_name" 2>/dev/null; then
-    build_session "$session_name" "$selected_path"
+    build_session "$session_name" "$selected_path" "$from_pr"
     created=1
 fi
 
