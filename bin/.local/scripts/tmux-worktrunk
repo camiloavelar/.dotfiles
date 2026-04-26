@@ -162,13 +162,13 @@ build_session() {
     tmux new-window -t "$target" -n "nvim" -c "$path"
     tmux new-window -t "$target" -n "lazygit" -c "$path"
     tmux new-window -t "$target" -n "claude" -c "$path"
-    tmux send-keys -t "$target:nvim" "nvim ." C-m
+    if [[ $with_pr -eq 1 ]]; then
+        tmux send-keys -t "$target:nvim" "nvim -c \"lua vim.api.nvim_create_autocmd('VimEnter', {once=true, callback=function() vim.cmd('DiffviewOpen origin/main...HEAD') vim.cmd('tabfirst') end})\"" C-m
+    else
+        tmux send-keys -t "$target:nvim" "nvim ." C-m
+    fi
     tmux send-keys -t "$target:lazygit" "lazygit" C-m
     tmux send-keys -t "$target:claude" "claude" C-m
-    if [[ $with_pr -eq 1 ]]; then
-        tmux new-window -t "$target" -n "PR" -c "$path"
-        tmux send-keys -t "$target:PR" "nvim -c ':silent Octo pr'" C-m
-    fi
 }
 
 if tmux has-session -t="$session_name" 2>/dev/null; then
