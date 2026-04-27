@@ -14,15 +14,15 @@ selected_name=$(basename "$selected" | tr . _)
 tmux_running=$(pgrep tmux)
 
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
-    tmux new-session -s "$selected_name"-c "$selected"
+    tmux new-session -s "$selected_name" -c "$selected"
     exit 0
 fi
 
 if ! tmux has-session -t="$selected_name" 2> /dev/null; then
     tmux new-session -ds "$selected_name" -c "$selected"
-    tmux new-window -t "$selected_name" -n "nvim" -c "$selected"
-    tmux new-window -t "$selected_name" -n "lazygit" -c "$selected"
-    tmux new-window -t "$selected_name" -n "claude" -c "$selected"
+    tmux new-window -t "$selected_name:" -n "nvim" -c "$selected"
+    tmux new-window -t "$selected_name:" -n "lazygit" -c "$selected"
+    tmux new-window -t "$selected_name:" -n "claude" -c "$selected"
     tmux send-keys -t "$selected_name":nvim "nvim ." C-m
     tmux send-keys -t "$selected_name":lazygit "lazygit" C-m
     tmux send-keys -t "$selected_name":claude "claude" C-m
