@@ -148,6 +148,20 @@ type = "plugin_action"
 command = "herdr-nvim-nav.right"
 description = "focus pane right (vim-aware)"
 
+# herdr-radar sidebar — requires:
+#   herdr plugin install hhdebb/herdr-radar
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "hhdebb.herdr-radar.view-flip"
+description = "agents: active <-> recent"
+
+[[keys.command]]
+key = "prefix+comma"
+type = "plugin_action"
+command = "hhdebb.herdr-radar.settings"
+description = "herdr-radar settings"
+
 # ---------------------------------------------------------------------------
 # ui — was: status-style / status-position / mouse / catppuccin modules
 # ---------------------------------------------------------------------------

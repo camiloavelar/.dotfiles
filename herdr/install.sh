@@ -106,12 +106,50 @@ require_plugin herdr.auto-title kryptamine/herdr-auto-title \
     "         ~/Library/Application Support/herdr-auto-title/config.env"
 
 echo
-# Rewrites the managed blocks the copy above just removed, and reloads. Needs a
-# running server; with none, the blocks land on the next run of this script.
+# Rewrites the managed blocks the copy above just removed, and reloads. Runs
+# the plugin's script with this shell's node rather than as a server action:
+# under a bare-PATH server the action fails silently, the sidebar block stays
+# missing, and the plugin's daemon then reads that absence as "rows turned off"
+# and never puts it back.
 if have_plugin "$radar"; then
     echo "herdr-radar managed blocks:"
-    herdr plugin action invoke "$radar.configure" >/dev/null
-    echo "  invoked  $radar.configure (writes tab-bar, sidebar, theme blocks)"
+    radar_root=$(herdr plugin list --json | python3 -c '
+import json, sys
+for p in json.load(sys.stdin)["result"]["plugins"]:
+    if p["plugin_id"] == sys.argv[1]:
+        print(p["plugin_root"])
+' "$radar")
+    node "$radar_root/bin/configure.js" --apply --reload
+
+    # Keep herdr's own Spaces rows. Radar hardcodes its Spaces layout inside
+    # the same managed block as the Agents rows and has no setting for it; a
+    # hand-written [ui.sidebar.spaces] makes it drop the whole block, Agents
+    # included. So patch the section in place after every configure. Radar
+    # rewrites the block on desktop light/dark flips, which follow_appearance
+    # below turns off (this config is dark-only anyway).
+    python3 - "$config_target" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path).read()
+start = text.index("[ui.sidebar.spaces]")
+end = text.index("# <<< herdr-radar sidebar block")
+spaces = (
+    "[ui.sidebar.spaces]\n"
+    "# herdr's defaults, kept by install.sh; radar cannot leave this panel alone\n"
+    'rows = [["state_icon", "workspace"], ["branch", "git_status"]]\n'
+)
+open(path, "w").write(text[:start] + spaces + text[end:])
+PY
+    echo "  patched  [ui.sidebar.spaces] back to herdr's rows"
+    herdr server reload-config >/dev/null
+
+    radar_config="$(herdr plugin config-dir "$radar")/config.toml"
+    if ! grep -q '^follow_appearance' "$radar_config" 2>/dev/null; then
+        echo 'follow_appearance = false' >> "$radar_config"
+        echo "  set      follow_appearance = false in $radar_config"
+        node "$radar_root/bin/agent-state.js" --stop
+        node "$radar_root/bin/agent-state.js"
+    fi
 else
     echo "  MISSING  agent sidebar needs the radar plugin:"
     echo "             herdr plugin install hhdebb/herdr-radar"
