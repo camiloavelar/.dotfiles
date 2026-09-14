@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# herdr runs popup commands via /bin/sh with the server's env; under the
+# Homebrew launchd service PATH is only /usr/bin:/bin:/usr/sbin:/sbin.
+export PATH="/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.cargo/bin:$PATH"
+
 if [[ $# -eq 1 ]]; then
     selected=$1
 else

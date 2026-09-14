@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# herdr runs popup commands via /bin/sh with the server's env; under the
+# Homebrew launchd service PATH is only /usr/bin:/bin:/usr/sbin:/sbin.
+export PATH="/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.cargo/bin:$PATH"
+
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
     echo "herdr-worktrunk: not inside a git repository" >&2
     exit 1
