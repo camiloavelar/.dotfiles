@@ -41,6 +41,29 @@ link() {
     echo "  linked   $dst -> $src"
 }
 
+have_plugin() {
+    herdr plugin list --json 2>/dev/null | grep -q "$1"
+}
+
+# Report a plugin, never install it: a GitHub install builds and runs code, so
+# it stays a decision rather than a side effect of running this script.
+require_plugin() {
+    local id=$1 source=$2 why=$3
+    shift 3
+
+    if have_plugin "$id"; then
+        echo "  ok       $id"
+        return
+    fi
+
+    echo "  MISSING  $why needs $id:"
+    echo "             herdr plugin install $source"
+    local note
+    for note in "$@"; do
+        echo "$note"
+    done
+}
+
 if ! command -v herdr >/dev/null 2>&1; then
     echo "herdr not found in PATH. Install it first:" >&2
     echo "  curl -fsSL https://herdr.dev/install.sh | sh" >&2
@@ -72,18 +95,20 @@ echo "validating config:"
 herdr config check
 
 echo
-if herdr plugin list --json 2>/dev/null | grep -q 'herdr-nvim-nav'; then
-    echo "  ok       herdr-nvim-nav plugin installed"
-else
-    echo "  MISSING  ctrl+h/j/k/l pane navigation needs the navigator plugin:"
-    echo "             herdr plugin install aimdevlee/herdr-nvim-nav"
-    echo "           plus the Neovim side in ~/.config/nvim/lua/plugins/"
-fi
+echo "plugins:"
+require_plugin herdr-nvim-nav aimdevlee/herdr-nvim-nav \
+    "ctrl+h/j/k/l pane navigation" \
+    "         plus the Neovim side in ~/.config/nvim/lua/plugins/"
+require_plugin herdr.auto-title kryptamine/herdr-auto-title \
+    "automatic tab and pane titles" \
+    "         builds with go, so Go has to be on the PATH herdr sees" \
+    "         defaults are all this config wants; override them in" \
+    "         ~/Library/Application Support/herdr-auto-title/config.env"
 
 echo
 # Rewrites the managed blocks the copy above just removed, and reloads. Needs a
 # running server; with none, the blocks land on the next run of this script.
-if herdr plugin list --json 2>/dev/null | grep -q "$radar"; then
+if have_plugin "$radar"; then
     echo "herdr-radar managed blocks:"
     herdr plugin action invoke "$radar.configure" >/dev/null
     echo "  invoked  $radar.configure (writes tab-bar, sidebar, theme blocks)"
