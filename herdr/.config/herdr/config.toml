@@ -1,7 +1,12 @@
 # herdr configuration — ported from ~/.tmux.conf
 #
-# source of truth: ~/personal/tmux-herdr/config.toml
-# symlinked to:    ~/.config/herdr/config.toml   (see ./install.sh)
+# source of truth: this file
+# copied to:       ~/.config/herdr/config.toml   (see ../../install.sh)
+#
+# The copy is what herdr reads; herdr-radar appends its managed blocks to it
+# there and they stay untracked, so never declare a [theme.custom] or
+# [ui.sidebar.*] table here — a table declared twice is a TOML error, and
+# radar answers one it finds outside its block by dropping the block whole.
 #
 # validate:  herdr config check
 # reload:    herdr server reload-config   (or prefix+r)
