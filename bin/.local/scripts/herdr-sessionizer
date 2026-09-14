@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# herdr port of ~/.local/scripts/tmux-sessionizer
+# tmux session -> herdr workspace, tmux window -> herdr tab
+
+set -euo pipefail
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    selected=$(find -L ~/projects ~/personal -mindepth 1 -maxdepth 1 -type d | fzf)
+fi
+
+if [[ -z ${selected:-} ]]; then
+    exit 0
+fi
+
+selected_name=$(basename "$selected" | tr . _)
+
+workspace_id_for() {
+    herdr workspace list \
+        | jq -r --arg n "$1" 'first(.result.workspaces[] | select(.label == $n) | .workspace_id) // empty'
+}
+
+tab_id_for() {
+    herdr tab list --workspace "$1" \
+        | jq -r --arg l "$2" 'first(.result.tabs[] | select(.label == $l) | .tab_id) // empty'
+}
+
+# create a tab in $ws_id and optionally run a command in its root pane
+build_tab() {
+    local label=$1 cmd=${2:-} created pane
+    created=$(herdr tab create --workspace "$ws_id" --label "$label" --cwd "$selected")
+    if [[ -n $cmd ]]; then
+        pane=$(jq -r '.result.root_pane.pane_id' <<<"$created")
+        herdr pane run "$pane" "$cmd" >/dev/null
+    fi
+}
+
+ws_id=$(workspace_id_for "$selected_name")
+
+if [[ -z $ws_id ]]; then
+    created=$(herdr workspace create --cwd "$selected" --label "$selected_name")
+    ws_id=$(jq -r '.result.workspace.workspace_id' <<<"$created")
+    herdr tab rename "$(jq -r '.result.tab.tab_id' <<<"$created")" zsh >/dev/null
+
+    build_tab nvim "nvim ."
+    build_tab lazygit "lazygit"
+    build_tab claude "claude"
+fi
+
+herdr workspace focus "$ws_id" >/dev/null
+
+nvim_tab=$(tab_id_for "$ws_id" nvim)
+if [[ -n $nvim_tab ]]; then
+    herdr tab focus "$nvim_tab" >/dev/null
+fi
+
+# launched from a plain shell rather than from inside herdr: attach
+if [[ ${HERDR_ENV:-} != 1 ]]; then
+    exec herdr
+fi

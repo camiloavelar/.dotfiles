@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+# herdr port of ~/.local/scripts/tmux-worktrunk
+# tmux session -> herdr workspace, tmux window -> herdr tab.
+# The wt / gh / fzf logic is unchanged; only the multiplexer calls differ.
+
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "herdr-worktrunk: not inside a git repository" >&2
+    exit 1
+}
+
+cd "$repo_root"
+
+from_pr=0
+new_entry="[+ new worktree]"
+remote_entry="[+ from remote]"
+pr_entry="[+ from open PR]"
+
+workspace_id_for() {
+    herdr workspace list \
+        | jq -r --arg n "$1" 'first(.result.workspaces[] | select(.label == $n) | .workspace_id) // empty'
+}
+
+tab_id_for() {
+    herdr tab list --workspace "$1" \
+        | jq -r --arg l "$2" 'first(.result.tabs[] | select(.label == $l) | .tab_id) // empty'
+}
+
+raw=$(
+    {
+        printf '%s\t\t%s\n' "$new_entry" "$new_entry"
+        printf '%s\t\t%s\n' "$remote_entry" "$remote_entry"
+        printf '%s\t\t%s\n' "$pr_entry" "$pr_entry"
+        wt list --format=json | jq -r '
+            .[]
+            | ((now - .commit.timestamp)) as $s
+            | (if $s < 3600 then "\($s/60|floor)m"
+               elif $s < 86400 then "\($s/3600|floor)h"
+               else "\($s/86400|floor)d" end) as $age
+            | "\(.branch // "")\t\(.path)\t\(.statusline // .branch // "(detached)")  [2m\($age) · \(.commit.message[0:60])[22m"
+        '
+    } | fzf \
+        --ansi \
+        --delimiter=$'\t' \
+        --with-nth=3 \
+        --expect=ctrl-d \
+        --header="enter: open  ctrl-d: remove  ($(basename "$repo_root"))"
+)
+
+if [[ -z $raw ]]; then
+    exit 0
+fi
+
+key=$(printf '%s\n' "$raw" | sed -n '1p')
+selection=$(printf '%s\n' "$raw" | sed -n '2p')
+
+if [[ -z $selection ]]; then
+    exit 0
+fi
+
+selected_branch=$(printf '%s' "$selection" | cut -f1)
+selected_path=$(printf '%s' "$selection" | cut -f2)
+
+if [[ $key == "ctrl-d" ]]; then
+    case "$selected_branch" in
+    "$new_entry" | "$remote_entry" | "$pr_entry") exit 0 ;;
+    esac
+    # detached worktrees have no branch; identify them by directory instead
+    removal_label=${selected_branch:-$(basename "$selected_path") (detached)}
+    read -r -p "remove worktree '$removal_label'? [y/N] " confirm
+    if [[ ! $confirm =~ ^[yY]$ ]]; then
+        exit 0
+    fi
+    workspace_to_close=$(workspace_id_for "$(basename "$selected_path" | tr './' '__')")
+    if [[ -n $workspace_to_close ]]; then
+        herdr workspace close "$workspace_to_close" >/dev/null 2>&1 || true
+    fi
+    if [[ -z $selected_branch ]]; then
+        # wt remove only accepts branch names, so fall back to plain git
+        if ! git worktree remove "$selected_path"; then
+            read -r -p "remove failed. retry with --force? [y/N] " force
+            if [[ $force =~ ^[yY]$ ]]; then
+                git worktree remove --force "$selected_path"
+            fi
+        fi
+        git worktree prune
+    elif ! wt remove --yes "$selected_branch"; then
+        read -r -p "remove failed. retry with --force --force-delete? [y/N] " force
+        if [[ $force =~ ^[yY]$ ]]; then
+            wt remove --yes --force --force-delete "$selected_branch"
+        fi
+    fi
+    exit 0
+fi
+
+if [[ "$selected_branch" == "$new_entry" ]]; then
+    read -r -p "new branch: " new_branch
+    if [[ -z ${new_branch:-} ]]; then
+        exit 0
+    fi
+    wt --yes switch --create "$new_branch"
+    selected_path=$(wt list --format=json | jq -r --arg b "$new_branch" '.[] | select(.branch == $b) | .path')
+    selected_branch=$new_branch
+fi
+
+if [[ "$selected_branch" == "$remote_entry" ]]; then
+    if git remote get-url origin >/dev/null 2>&1; then
+        remote=origin
+    else
+        remote=$(git remote | awk 'NR==1')
+    fi
+    if [[ -z $remote ]]; then
+        echo "herdr-worktrunk: no git remote configured" >&2
+        exit 1
+    fi
+    existing=$(wt list --format=json | jq -r '.[].branch // empty')
+    lsr_file=$(mktemp)
+    exclude_file=$(mktemp)
+    trap 'rm -f "$lsr_file" "$exclude_file"' EXIT
+    if ! git ls-remote --heads "$remote" > "$lsr_file"; then
+        echo "herdr-worktrunk: ls-remote $remote failed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    printf '%s\n' "$existing" > "$exclude_file"
+    remote_branch=$(
+        cut -f2 "$lsr_file" \
+            | cut -d/ -f3- \
+            | grep -vxFf "$exclude_file" \
+            | sort -u \
+            | fzf --header="remote branch on $remote (worktreed branches hidden)"
+    )
+    if [[ -z $remote_branch ]]; then
+        exit 0
+    fi
+    git fetch --quiet "$remote" "$remote_branch:refs/remotes/$remote/$remote_branch"
+    wt --yes switch "$remote_branch"
+    selected_path=$(wt list --format=json | jq -r --arg b "$remote_branch" '.[] | select(.branch == $b) | .path')
+    selected_branch=$remote_branch
+fi
+
+if [[ "$selected_branch" == "$pr_entry" ]]; then
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "herdr-worktrunk: gh CLI not installed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    pr_line=$(
+        gh pr list --state open --limit 200 \
+            --json number,title,headRefName,author \
+            --jq '.[] | "\(.number)\t\(.headRefName)\t#\(.number) [\(.author.login)] \(.title)"' \
+            | fzf --delimiter=$'\t' --with-nth=3 --header="open PRs"
+    )
+    if [[ -z $pr_line ]]; then
+        exit 0
+    fi
+    pr_num=$(printf '%s' "$pr_line" | cut -f1)
+    from_pr=1
+    before=$(wt list --format=json | jq -r '.[].path' | sort)
+    if ! wt --yes switch "pr:$pr_num" --no-cd; then
+        echo "herdr-worktrunk: wt switch pr:$pr_num failed" >&2
+        read -r -p "press enter to dismiss" _
+        exit 1
+    fi
+    after_json=$(wt list --format=json)
+    after=$(echo "$after_json" | jq -r '.[].path' | sort)
+    new_path=$(comm -13 <(echo "$before") <(echo "$after"))
+    if [[ -n $new_path ]]; then
+        selected_path=$new_path
+    else
+        selected_path=$(echo "$after_json" | jq -r '.[] | select(.is_current) | .path')
+    fi
+    selected_branch=$(echo "$after_json" | jq -r --arg p "$selected_path" '.[] | select(.path == $p) | .branch')
+fi
+
+if [[ -z $selected_path ]]; then
+    echo "herdr-worktrunk: could not resolve worktree path for '$selected_branch'" >&2
+    exit 1
+fi
+
+workspace_name=$(basename "$selected_path" | tr './' '__')
+
+build_tab() {
+    local ws=$1 tab_label=$2 path=$3 cmd=$4 out tab_pane
+    out=$(herdr tab create --workspace "$ws" --label "$tab_label" --cwd "$path")
+    tab_pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
+    herdr pane run "$tab_pane" "$cmd" >/dev/null
+}
+
+build_workspace() {
+    local label=$1 path=$2 with_pr=${3:-0} created ws
+
+    created=$(herdr workspace create --cwd "$path" --label "$label")
+    ws=$(jq -r '.result.workspace.workspace_id' <<<"$created")
+    herdr tab rename "$(jq -r '.result.tab.tab_id' <<<"$created")" zsh >/dev/null
+
+    if [[ $with_pr -eq 1 ]]; then
+        build_tab "$ws" nvim "$path" "nvim . -c 'Octo pr' -c 'Octo review browse'"
+    else
+        build_tab "$ws" nvim "$path" "nvim ."
+    fi
+    build_tab "$ws" lazygit "$path" "lazygit"
+    build_tab "$ws" claude "$path" "claude"
+
+    printf '%s' "$ws"
+}
+
+ws_id=$(workspace_id_for "$workspace_name")
+
+# a workspace without an nvim tab is a stale shell; rebuild it
+if [[ -n $ws_id ]] && [[ -z $(tab_id_for "$ws_id" nvim) ]]; then
+    herdr workspace close "$ws_id" >/dev/null
+    ws_id=""
+fi
+
+created_now=0
+if [[ -z $ws_id ]]; then
+    ws_id=$(build_workspace "$workspace_name" "$selected_path" "$from_pr")
+    created_now=1
+fi
+
+herdr workspace focus "$ws_id" >/dev/null
+
+if [[ $created_now -eq 1 ]]; then
+    nvim_tab=$(tab_id_for "$ws_id" nvim)
+    if [[ -n $nvim_tab ]]; then
+        herdr tab focus "$nvim_tab" >/dev/null
+    fi
+fi
+
+# launched from a plain shell rather than from inside herdr: attach
+if [[ ${HERDR_ENV:-} != 1 ]]; then
+    exec herdr
+fi
