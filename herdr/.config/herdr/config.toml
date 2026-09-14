@@ -1,0 +1,175 @@
+# herdr configuration — ported from ~/.tmux.conf
+#
+# source of truth: ~/personal/tmux-herdr/config.toml
+# symlinked to:    ~/.config/herdr/config.toml   (see ./install.sh)
+#
+# validate:  herdr config check
+# reload:    herdr server reload-config   (or prefix+r)
+
+onboarding = false
+
+# ---------------------------------------------------------------------------
+# theme — was: tpm + catppuccin/tmux, @catppuccin_flavor "mocha"
+# ---------------------------------------------------------------------------
+[theme]
+name = "catppuccin"
+
+[terminal]
+# tmux used login shells implicitly on macOS
+shell_mode = "auto"
+new_cwd = "follow"
+
+# ---------------------------------------------------------------------------
+# keybindings
+# ---------------------------------------------------------------------------
+[keys]
+prefix = "ctrl+b"
+
+# tmux: bind r source-file ~/.tmux.conf
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+
+# tmux: bind -r m resize-pane -Z
+zoom = "prefix+m"
+
+# tmux: bind-key 's' choose-tree -sZ -O name
+goto = ["prefix+g", "prefix+s"]
+settings = "prefix+shift+s"
+
+# tmux: bind-key 'w' choose-tree -Zs -O name
+workspace_picker = "prefix+w"
+
+copy_mode = "prefix+["
+
+# navigate mode (prefix+w / prefix+g): j/k walk workspaces, vim-style.
+# By default only the arrow keys did, because j/k were taken by vertical pane
+# movement. h/l still walk panes; left/right arrows always do too.
+navigate_workspace_up = "k"
+navigate_workspace_down = "j"
+navigate_pane_down = ""
+navigate_pane_up = ""
+
+# Navigate mode walks workspaces and panes only — agent rows are not reachable
+# from it. These are the agent equivalents, unset in stock herdr.
+previous_agent = "prefix+shift+k"
+next_agent = "prefix+shift+j"
+focus_agent = "prefix+shift+1..9"
+
+# tmux: bind - split-window -v   (horizontal divider, pane below)
+split_horizontal = "prefix+minus"
+split_vertical = "prefix+v"
+
+# tmux: bind -r h/j/k/l resize-pane -L/-D/-U/-R 5
+resize_pane_left = "prefix+h"
+resize_pane_down = "prefix+j"
+resize_pane_up = "prefix+k"
+resize_pane_right = "prefix+l"
+
+# pane focus lives on ctrl+hjkl via the nvim navigator plugin (see below),
+# exactly as vim-tmux-navigator did under tmux — so unset the prefix variants
+# and free prefix+hjkl for resize.
+focus_pane_left = ""
+focus_pane_down = ""
+focus_pane_up = ""
+focus_pane_right = ""
+
+# tmux: base-index 1 + select-window
+switch_tab = "prefix+1..9"
+
+new_tab = "prefix+c"
+next_tab = "prefix+n"
+previous_tab = "prefix+p"
+detach = "prefix+q"
+
+# tmux: bind -r ^ last-window / bind b switch-client -l
+# herdr's last_pane is a single global back-and-forth: it returns to the
+# previously focused pane wherever it lives, so it covers last-window and
+# last-session at once.
+#   bind-key 'C-b' last-window cannot be ported: herdr reserves a doubled
+#   prefix for sending a literal prefix key.
+last_pane = ["prefix+b", "prefix+^"]
+
+toggle_sidebar = "prefix+shift+b"
+
+# ---------------------------------------------------------------------------
+# custom commands — was: bind-key -r f/F/t + session shortcuts
+# ---------------------------------------------------------------------------
+
+# tmux: bind-key -r f run-shell "tmux neww ~/.local/scripts/tmux-sessionizer"
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "~/.local/scripts/herdr-sessionizer"
+description = "sessionizer"
+width = "80%"
+height = "80%"
+
+# tmux: bind-key -r F run-shell "~/.local/scripts/tmux-sessionizer ~/.config/nvim"
+[[keys.command]]
+key = "prefix+shift+f"
+type = "popup"
+command = "~/.local/scripts/herdr-sessionizer ~/.config/nvim"
+description = "sessionizer: nvim config"
+width = "80%"
+height = "80%"
+
+# tmux: bind-key -r t run-shell "tmux neww ~/.local/scripts/tmux-worktrunk"
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "~/.local/scripts/herdr-worktrunk"
+description = "worktrunk"
+width = "90%"
+height = "90%"
+
+# vim-tmux-navigator replacement — requires:
+#   herdr plugin install aimdevlee/herdr-nvim-nav
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "herdr-nvim-nav.left"
+description = "focus pane left (vim-aware)"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "herdr-nvim-nav.down"
+description = "focus pane down (vim-aware)"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "herdr-nvim-nav.up"
+description = "focus pane up (vim-aware)"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "herdr-nvim-nav.right"
+description = "focus pane right (vim-aware)"
+
+# ---------------------------------------------------------------------------
+# ui — was: status-style / status-position / mouse / catppuccin modules
+# ---------------------------------------------------------------------------
+[ui]
+# tmux: set -g status-style 'fg=#5eacd3'
+accent = "#5eacd3"
+
+# tmux: set-option -g status-position top
+tab_bar_position = "top"
+
+# tmux: set -g mouse on
+mouse_capture = true
+copy_on_select = true
+
+# tmux: new-window took no name prompt
+prompt_new_tab_name = false
+
+# tmux: @catppuccin_status_date_time
+tab_bar_right = [{ type = "datetime", format = "%Y-%m-%d %H:%M" }]
+
+# ---------------------------------------------------------------------------
+# session — replaces tmux-resurrect + tmux-continuum
+# ---------------------------------------------------------------------------
+[session]
+resume_agents_on_restore = true
