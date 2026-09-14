@@ -165,9 +165,6 @@ copy_on_select = true
 # tmux: new-window took no name prompt
 prompt_new_tab_name = false
 
-# tmux: @catppuccin_status_date_time
-tab_bar_right = [{ type = "datetime", format = "%Y-%m-%d %H:%M" }]
-
 # ---------------------------------------------------------------------------
 # session — replaces tmux-resurrect + tmux-continuum
 # ---------------------------------------------------------------------------
