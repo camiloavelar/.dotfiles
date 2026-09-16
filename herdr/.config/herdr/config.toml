@@ -171,9 +171,10 @@ prompt_new_tab_name = false
 # ---------------------------------------------------------------------------
 status_indicators = "symbols"
 [ui.sidebar.agents]
-# header row per space (fork feature), so rows omit the space name
+# header row per space (fork feature); grouped rows hide the workspace token,
+# priority mode shows it
 group_by_space = true
-rows = [["state_icon", "terminal_title_stripped"], ["state_text", "agent"]]
+rows = [["state_icon", "terminal_title_stripped"], ["workspace"], ["state_text", "agent"]]
 
 [session]
 resume_agents_on_restore = true
