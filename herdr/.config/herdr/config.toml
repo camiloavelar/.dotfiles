@@ -124,6 +124,15 @@ description = "worktrunk"
 width = "90%"
 height = "90%"
 
+# new agent pane in the current tab — herdr has no native "create agent" key,
+# so this is a command binding that just launches claude in a fresh pane.
+# cwd follows the focused pane (session.new_cwd = "follow").
+[[keys.command]]
+key = "prefix+shift+a"
+type = "pane"
+command = "claude"
+description = "new agent in current space"
+
 # vim-tmux-navigator replacement — requires:
 #   herdr plugin install aimdevlee/herdr-nvim-nav
 [[keys.command]]
