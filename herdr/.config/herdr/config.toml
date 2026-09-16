@@ -85,13 +85,13 @@ next_tab = "prefix+n"
 previous_tab = "prefix+p"
 detach = "prefix+q"
 
-# tmux: bind -r ^ last-window / bind b switch-client -l
-# herdr's last_pane is a single global back-and-forth: it returns to the
-# previously focused pane wherever it lives, so it covers last-window and
-# last-session at once.
-#   bind-key 'C-b' last-window cannot be ported: herdr reserves a doubled
-#   prefix for sending a literal prefix key.
-last_pane = ["prefix+b", "prefix+^"]
+# tmux: bind b switch-client -l        -> last_workspace (previous space)
+#       bind C-b last-window / bind ^   -> last_tab (previous tab of this space)
+# Fork feature: prefix+ctrl+b is allowed as a binding (upstream reserves it for
+# sending a literal prefix key).
+last_workspace = "prefix+b"
+last_tab = ["prefix+ctrl+b", "prefix+^"]
+last_pane = ""
 
 toggle_sidebar = "prefix+shift+b"
 
