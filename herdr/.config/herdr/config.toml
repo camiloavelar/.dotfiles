@@ -91,7 +91,7 @@ last_workspace = "prefix+b"
 last_tab = ["prefix+shift+b", "prefix+^"]
 last_pane = ""
 
-toggle_sidebar = "prefix+x"
+toggle_sidebar = "prefix+space"
 
 # ---------------------------------------------------------------------------
 # custom commands — was: bind-key -r f/F/t + session shortcuts
