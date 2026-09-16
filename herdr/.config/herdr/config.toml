@@ -87,13 +87,11 @@ detach = "prefix+q"
 
 # tmux: bind b switch-client -l        -> last_workspace (previous space)
 #       bind C-b last-window / bind ^   -> last_tab (previous tab of this space)
-# Fork feature: prefix+ctrl+b is allowed as a binding (upstream reserves it for
-# sending a literal prefix key).
 last_workspace = "prefix+b"
-last_tab = ["prefix+ctrl+b", "prefix+^"]
+last_tab = ["prefix+shift+b", "prefix+^"]
 last_pane = ""
 
-toggle_sidebar = "prefix+shift+b"
+toggle_sidebar = "prefix+x"
 
 # ---------------------------------------------------------------------------
 # custom commands — was: bind-key -r f/F/t + session shortcuts
