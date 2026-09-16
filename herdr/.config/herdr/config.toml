@@ -3,10 +3,9 @@
 # source of truth: this file
 # copied to:       ~/.config/herdr/config.toml   (see ../../install.sh)
 #
-# The copy is what herdr reads; herdr-radar appends its managed blocks to it
-# there and they stay untracked, so never declare a [theme.custom] or
-# [ui.sidebar.*] table here — a table declared twice is a TOML error, and
-# radar answers one it finds outside its block by dropping the block whole.
+# herdr is the camiloavelar/herdr fork (prefix+a agent navigation,
+# ui.navigation_preview, updates from its own GitHub releases). [update]
+# channel = "preview" follows every push to the fork's master.
 #
 # validate:  herdr config check
 # reload:    herdr server reload-config   (or prefix+r)
@@ -153,26 +152,11 @@ type = "plugin_action"
 command = "herdr-nvim-nav.right"
 description = "focus pane right (vim-aware)"
 
-# herdr-radar sidebar — requires:
-#   herdr plugin install hhdebb/herdr-radar
-[[keys.command]]
-key = "prefix+a"
-type = "plugin_action"
-command = "hhdebb.herdr-radar.view-flip"
-description = "agents: active <-> recent"
-
-[[keys.command]]
-key = "prefix+comma"
-type = "plugin_action"
-command = "hhdebb.herdr-radar.settings"
-description = "herdr-radar settings"
-
 # ---------------------------------------------------------------------------
 # ui — was: status-style / status-position / mouse / catppuccin modules
 # ---------------------------------------------------------------------------
 [ui]
-# tmux: set -g status-style 'fg=#5eacd3'
-accent = "#5eacd3"
+navigation_preview = true
 
 # tmux: set-option -g status-position top
 tab_bar_position = "top"
@@ -187,5 +171,17 @@ prompt_new_tab_name = false
 # ---------------------------------------------------------------------------
 # session — replaces tmux-resurrect + tmux-continuum
 # ---------------------------------------------------------------------------
+status_indicators = "symbols"
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace"], ["state_text", "agent"]]
+
 [session]
 resume_agents_on_restore = true
+
+[theme.custom]
+accent = "#cba6f7"
+sidebar_bg = "#181825"
+surface_dim = "#313244"
+
+[update]
+channel = "preview"

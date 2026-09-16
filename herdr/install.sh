@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
-# Install this repo's herdr config and scripts.
+# Install this repo's herdr config and scripts, and the herdr fork binary when
+# no herdr is on PATH (or with --binary).
 #
-# The config is COPIED, not symlinked, and `herdr` is deliberately not a stow
-# package. The herdr-radar plugin rewrites ~/.config/herdr/config.toml through
-# writeFileSync + renameSync, and a rename over a symlink replaces it with a
-# regular file -- so any symlink here survives only until the plugin next
-# touches the theme. A copy makes that a no-op.
+# herdr here is the camiloavelar/herdr fork of herdrdev/herdr. It adds prefix+a
+# agent navigation and ui.navigation_preview, and serves its own updates from
+# its GitHub releases: the preview channel (set in config.toml) follows every
+# push to master; `herdr update` from outside herdr installs the next build.
 #
-# The plugin's three managed blocks are therefore NOT tracked: they carry
-# absolute, machine-specific paths. This script copies the clean base and then
-# asks the plugin to append them locally -- then drops the [ui.sidebar.spaces]
-# table out of them, because this config keeps herdr's own Spaces panel (see
-# drop_radar_spaces). TOML forbids a second declaration of the same table and
-# radar refuses to write anything while one of its tables sits outside its
-# markers, so the base config must never declare a [ui.sidebar.*] of its own.
+# The config is COPIED, not symlinked: herdr and its plugins write the file
+# through rename, which would replace a symlink into this repo.
 #
 # Idempotent. An existing config that differs from the base is backed up first.
 
@@ -24,7 +19,9 @@ base="$repo/.config/herdr/config.toml"
 config_target="$HOME/.config/herdr/config.toml"
 scripts_src="$repo/../bin/.local/scripts"
 scripts_dir="$HOME/.local/scripts"
-radar="hhdebb.herdr-radar"
+fork="camiloavelar/herdr"
+preview_base="https://github.com/$fork/releases/download/preview"
+bin_dir="$HOME/.local/bin"
 
 link() {
     local src=$1 dst=$2
@@ -68,41 +65,69 @@ require_plugin() {
     done
 }
 
-# Hand the Spaces panel back to herdr. Radar writes [ui.sidebar.spaces] inside
-# its sidebar block -- a state mark and a vendor logo per Space -- and has no
-# setting to leave it alone; this config wants herdr's own panel there.
-#
-# DELETING the table is what restores herdr's defaults, whatever they are in
-# the installed version. Writing herdr's rows in its place is what an earlier
-# version of this script did, and that pinned the panel to one guess at those
-# defaults. A copy of the table OUTSIDE the markers is not an option either:
-# radar refuses to write any block at all while one of its tables sits outside
-# them (foreignTables), so the Agents rows would go down with it.
-#
-# Runs last, after the daemon restart below: apply(), the settings popup and a
-# daemon start that finds a stale logo variant each rewrite the whole block.
-drop_radar_spaces() {
-    python3 - "$config_target" <<'SPACES'
-import sys
-
-path = sys.argv[1]
-text = open(path).read()
-start = text.find("\n[ui.sidebar.spaces]")
-end = text.find("# <<< herdr-radar sidebar block")
-if start < 0 or end < 0 or start > end:
-    print("  ok       no [ui.sidebar.spaces] in the radar block")
-    sys.exit(0)
-open(path, "w").write(text[: start + 1] + text[end:])
-print("  dropped  [ui.sidebar.spaces] -- herdr's own Spaces rows show again")
-SPACES
+fork_asset() {
+    case "$(uname -s)-$(uname -m)" in
+        Darwin-arm64) echo herdr-macos-aarch64 ;;
+        Darwin-x86_64) echo herdr-macos-x86_64 ;;
+        Linux-x86_64) echo herdr-linux-x86_64 ;;
+        Linux-aarch64 | Linux-arm64) echo herdr-linux-aarch64 ;;
+        *) return 1 ;;
+    esac
 }
 
-if ! command -v herdr >/dev/null 2>&1; then
-    echo "herdr not found in PATH. Install it first:" >&2
-    echo "  curl -fsSL https://herdr.dev/install.sh | sh" >&2
-    exit 1
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d' ' -f1
+    else
+        shasum -a 256 "$1" | cut -d' ' -f1
+    fi
+}
+
+# Download the current preview build of the fork into ~/.local/bin/herdr,
+# verified against the sha256 published in preview.json.
+install_fork_binary() {
+    local asset
+    asset=$(fork_asset) || { echo "unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1; }
+    local expected
+    expected=$(curl -fsSL "$preview_base/preview.json" | python3 -c '
+import json, sys
+print(json.load(sys.stdin)["assets"][sys.argv[1]]["sha256"])
+' "${asset#herdr-}")
+    local tmp
+    tmp=$(mktemp)
+    curl -fsSL "$preview_base/$asset" -o "$tmp"
+    local actual
+    actual=$(sha256_of "$tmp")
+    if [[ $actual != "$expected" ]]; then
+        rm -f "$tmp"
+        echo "sha256 mismatch for $asset: expected $expected, got $actual" >&2
+        exit 1
+    fi
+    chmod +x "$tmp"
+    mkdir -p "$bin_dir"
+    mv -f "$tmp" "$bin_dir/herdr"
+    echo "  installed $bin_dir/herdr ($("$bin_dir/herdr" --version))"
+    echo "           restart the server to run it: herdr server stop && herdr"
+}
+
+echo "binary:"
+if [[ ${1:-} == --binary ]] || ! command -v herdr >/dev/null 2>&1; then
+    install_fork_binary
+    export PATH="$bin_dir:$PATH"
+else
+    herdr_path=$(command -v herdr)
+    herdr_version=$(herdr --version 2>/dev/null || true)
+    if [[ $herdr_version != *preview* ]]; then
+        echo "  WARNING  $herdr_path is '$herdr_version', not a fork preview build."
+        echo "           Remove the upstream install (brew uninstall herdr / mise uninstall herdr /"
+        echo "           rm $herdr_path), then rerun this script, or run it with --binary to"
+        echo "           install the fork into $bin_dir/herdr."
+    else
+        echo "  ok       $herdr_path ($herdr_version)"
+    fi
 fi
 
+echo
 echo "config:"
 mkdir -p "$(dirname "$config_target")"
 if [[ -L $config_target ]]; then
@@ -137,13 +162,16 @@ require_plugin herdr.auto-title kryptamine/herdr-auto-title \
     "         builds with go, so Go has to be on the PATH herdr sees" \
     "         defaults are all this config wants; override them in" \
     "         ~/Library/Application Support/herdr-auto-title/config.env"
+if have_plugin hhdebb.herdr-radar; then
+    echo "  REMOVE   hhdebb.herdr-radar rewrites the sidebar and theme blocks this config owns:"
+    echo "             herdr plugin uninstall hhdebb.herdr-radar"
+fi
 
 echo
 echo "agent integrations:"
-# The hooks that tell herdr what an agent is doing -- without them every
-# sidebar row sits at "unknown" and radar has nothing to colour. Unlike the
-# plugins above these are herdr's own, built into the binary: no build, no
-# third-party code, so installing one is not a decision worth stopping for.
+# The hooks that tell herdr what an agent is doing; without them every sidebar
+# row sits at "unknown". They ship inside the herdr binary (no build, no
+# third-party code), so installing one is not a decision worth stopping for.
 # `install` is idempotent and also upgrades a hook herdr reports as outdated.
 for integration in claude; do
     # "claude: current (v9) (/path/to/hook)" -- the path is noise here
@@ -160,36 +188,5 @@ for integration in claude; do
 done
 
 echo
-# Rewrites the managed blocks the copy above just removed, and reloads. Runs
-# the plugin's script with this shell's node rather than as a server action:
-# under a bare-PATH server the action fails silently, the sidebar block stays
-# missing, and the plugin's daemon then reads that absence as "rows turned off"
-# and never puts it back.
-if have_plugin "$radar"; then
-    echo "herdr-radar managed blocks:"
-    radar_root=$(herdr plugin list --json | python3 -c '
-import json, sys
-for p in json.load(sys.stdin)["result"]["plugins"]:
-    if p["plugin_id"] == sys.argv[1]:
-        print(p["plugin_root"])
-' "$radar")
-    node "$radar_root/bin/configure.js" --apply --reload
-
-    radar_config="$(herdr plugin config-dir "$radar")/config.toml"
-    mkdir -p "$(dirname "$radar_config")"
-    if ! grep -q '^follow_appearance' "$radar_config" 2>/dev/null; then
-        echo 'follow_appearance = false' >> "$radar_config"
-        echo "  set      follow_appearance = false in $radar_config"
-        node "$radar_root/bin/agent-state.js" --stop
-        node "$radar_root/bin/agent-state.js"
-    fi
-
-    drop_radar_spaces
-    herdr server reload-config >/dev/null
-else
-    echo "  MISSING  agent sidebar needs the radar plugin:"
-    echo "             herdr plugin install hhdebb/herdr-radar"
-    echo
-    echo "reloading a running server (no-op if none):"
-    herdr server reload-config 2>/dev/null || echo "  no running server"
-fi
+echo "reloading a running server (no-op if none):"
+herdr server reload-config >/dev/null 2>&1 && echo "  reloaded" || echo "  no running server"
