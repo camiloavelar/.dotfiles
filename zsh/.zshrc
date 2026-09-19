@@ -1,178 +1,127 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# If you come from bash you might have to change your $PATH.
+# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
-# Set NVIM as default editor.
-export EDITOR='nvim'
-export VISUAL='nvim'
+# Keep fpath identical in login and non-login shells so the zcompdump cache stays valid
+typeset -U fpath; fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
 
-# Enable word splitting
-setopt shwordsplit
-
-# Custom $PATH with extra locations.
-export GOPATH=$HOME/go
-export KREW_ROOT="$HOME/.krew"
-
-# Set OS specific $PATH.
-kernel_name="$(uname)"
-if [ "${kernel_name}" = "Darwin" ]; then
-  export PATH=/opt/homebrew/bin:$HOME/.local/bin:$HOME/.local/scripts:/usr/local/bin:/usr/local/sbin:$HOME/bin:$KREW_ROOT/bin:$GOPATH/bin:$HOME/.rd/bin:/usr/local/opt/gnu-sed/libexec/gnubin:$PATH
-elif [ "${kernel_name}" = "Linux" ]; then
-  export PATH=$HOME/.homebrew/bin:$HOME/.homebrew/sbin:$HOME/.local/bin:$HOME/.local/scripts:/usr/local/bin:/usr/local/sbin:$HOME/bin:$KREW_ROOT/bin:bin:$GOPATH:$PATH
-else
-  echo "Unknown kernel: ${kernel_name}"
-fi
-
-# GPG.
-export GPG_TTY=$TTY
-
-# Java.
-export JAVA_HOME=/usr/local/opt/openjdk@11
-
-# Oh-my-zsh.
+# Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
-# shellcheck disable=SC2034
-ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# Set Bat default theme
-export BAT_THEME="Catppuccin-macchiato"
+# Set name of the theme to load --- if set to "random", it will
+# load a random theme each time Oh My Zsh is loaded, in which case,
+# to know which specific one was loaded, run: echo $RANDOM_THEME
+# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+ZSH_THEME="apple"
 
-# Kubectl
-export dry='--dry-run=client --output=yaml'
+# Set list of themes to pick from when loading at random
+# Setting this variable when ZSH_THEME=random will cause zsh to load
+# a theme from this variable instead of looking in $ZSH/themes/
+# If set to an empty array, this variable will have no effect.
+# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
 
-# VI mode
-KEYTIMEOUT=1
+# Uncomment the following line to use case-sensitive completion.
+# CASE_SENSITIVE="true"
 
-# Enable plugins.
-# shellcheck disable=SC2034
-plugins=(asdf
-  brew
-  git
-  history-substring-search
-  kubectl
-  tmux
-  vi-mode)
+# Uncomment the following line to use hyphen-insensitive completion.
+# Case-sensitive completion must be off. _ and - will be interchangeable.
+# HYPHEN_INSENSITIVE="true"
 
-# Set history settings.
-HISTFILE=~/.histfile
-HISTSIZE=1000
-# shellcheck disable=SC2034
-SAVEHIST=1000
+# Uncomment one of the following lines to change the auto-update behavior
+# zstyle ':omz:update' mode disabled  # disable automatic updates
+# zstyle ':omz:update' mode auto      # update automatically without asking
+# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 
-# Set fzf options
-export FZF_DEFAULT_COMMAND='find .'
-export FZF_DEFAULT_OPTS="
---height=40%
---layout=reverse
---info=inline
---multi
---preview-window=:hidden
---preview '([[ -f {}  ]] && (bat --color=always --style=numbers,changes {} || cat {})) || ([[ -d {}  ]] && (tree -C {} | less)) || echo {} 2> /dev/null | head -200'
---color='hl:148,hl+:154,pointer:032,marker:010,bg+:237,gutter:008'
---prompt='~ ' --pointer='▶' --marker='✓'
---bind '?:toggle-preview'
---bind 'ctrl-a:select-all'
---bind 'ctrl-y:execute-silent(echo {+} | xclip -selection clipboard)'
---bind 'ctrl-e:execute(echo {+} | xargs -o nvim)'
---bind 'ctrl-v:execute(code {+})'
-"
+# Uncomment the following line to change how often to auto-update (in days).
+# zstyle ':omz:update' frequency 13
 
-# Set lazygit config location
-export XDG_CONFIG_HOME="$HOME/.config"
+# Uncomment the following line if pasting URLs and other text is messed up.
+# DISABLE_MAGIC_FUNCTIONS="true"
 
-# Set 1 hours session duraion for sam2aws
-export SAML2AWS_SESSION_DURATION=3600
+# Uncomment the following line to disable colors in ls.
+# DISABLE_LS_COLORS="true"
 
-# Aliases.
-alias kupdate='kubectl krew update && kubectl krew upgrade'
-alias ld='lazydocker'
-alias lg='lazygit'
-alias n='nvim'
-alias repo='cd $HOME/Documents/repositories'
-alias temp='cd $HOME/Downloads/temp'
-alias update='for SUBC in update upgrade autoremove autoclean; do sudo apt ${SUBC} -y; done'
+# Uncomment the following line to disable auto-setting terminal title.
+# DISABLE_AUTO_TITLE="true"
 
-# Functions
-# cd to the project
-cd-to-project() {
-  selected=$(find ~/Documents/repositories $GOPATH/src/github.com/AlexNabokikh/ -mindepth 1 -maxdepth 2 -type d -not -iwholename '*.git*' | fzf)
-  if [ -n "$selected" ]; then
-    tmux new-window -c "$selected" -n "$(basename "$selected")" || exit
-  fi
-}
+# Uncomment the following line to enable command auto-correction.
+# ENABLE_CORRECTION="true"
 
-# find-in-file
-fif() {
-  if [ ! "$#" -gt 0 ]; then
-    echo "Need a string to search for!"
-    return 1
-  fi
+# Uncomment the following line to display red dots whilst waiting for completion.
+# You can also set it to another string to have that shown instead of the default red dots.
+# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
+# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
+# COMPLETION_WAITING_DOTS="true"
 
-  rg --hidden --glob '!.git' --files-with-matches --no-messages "$1" | fzf --preview "rg --ignore-case --pretty --context 10 '$1' {}"
-}
+# Uncomment the following line if you want to disable marking untracked files
+# under VCS as dirty. This makes repository status check for large repositories
+# much, much faster.
+# DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-# fzf kill
-fkill() {
-	pid=$(ps -ef | sed 1d | fzf | awk '{print $2}')
+# Uncomment the following line if you want to change the command execution time
+# stamp shown in the history command output.
+# You can set one of the optional three formats:
+# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# or set a custom format using the strftime function format specifications,
+# see 'man strftime' for details.
+# HIST_STAMPS="mm/dd/yyyy"
 
-	if [ "x$pid" != "x" ]; then
-		kill -"${1:-9}" "$pid"
-	fi
-}
+# Would you like to use another custom folder than $ZSH/custom?
+# ZSH_CUSTOM=/path/to/new-custom-folder
 
-# Delete a given line number in the known_hosts file.
-knownrm() {
-  re='^[0-9]+$'
-  line_number=$(cat -n ~/.ssh/known_hosts | fzf | awk '{print $1}')
-  if ! [[ $line_number =~ $re ]]; then
-    echo "error: line number missing" >&2
-  else
-    sed -i "${line_number}d" ~/.ssh/known_hosts
-  fi
-}
+# Which plugins would you like to load?
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+plugins=(git)
 
-# Load Oh-my-zsh.
-# shellcheck disable=SC1091
-source "$ZSH/oh-my-zsh.sh"
-source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source $ZSH/oh-my-zsh.sh
 
-# Override Oh-my-zsh Aliases.
-#alias ls='exa --icons'                                 # default view
-#alias ll='exa -bhl --group-directories-first --icons'  # long list
-#alias la='exa -abhl --group-directories-first --icons' # all list
-#alias lt='exa --tree --level=2 --icons'                # tree
+# User configuration
 
-# Load Powerlevel10k config.
-# shellcheck disable=SC1090
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# export MANPATH="/usr/local/man:$MANPATH"
 
-# shellcheck disable=SC1090
-prefix=$(brew --prefix)
-version=$(fzf --version | awk '{print $1}')
-[ -f "${prefix}/Cellar/fzf/${version}/shell/key-bindings.zsh" ] && \
-  source "${prefix}/Cellar/fzf/${version}/shell/key-bindings.zsh"
+# You may need to manually set your language environment
+# export LANG=en_US.UTF-8
 
-# key-bindings
-# Set history search via up/down keys.
-bindkey "^[[A" history-substring-search-up
-bindkey "^[[B" history-substring-search-down
-# Set opt+c on Mac to run fzf-cd-widget
-bindkey "ć" fzf-cd-widget
-# Set ctrl+f to run cd-to-project
-bindkey -s ^f "cd-to-project\n"
-# Set V to edit command line in vim
-bindkey -M vicmd 'V' edit-command-line
-# Re-Set alt+backspace to delete word
-bindkey '^[^?' backward-kill-word
+# Preferred editor for local and remote sessions
+# if [[ -n $SSH_CONNECTION ]]; then
+#   export EDITOR='vim'
+# else
+#   export EDITOR='nvim'
+# fi
 
-alias vim=nvim
+# Compilation flags
+# export ARCHFLAGS="-arch $(uname -m)"
 
-export PATH=~/.local/.npm-global/bin:$PATH
-export PATH=$GOPATH/bin:$PATH
+# Set personal aliases, overriding those provided by Oh My Zsh libs,
+# plugins, and themes. Aliases can be placed here, though Oh My Zsh
+# users are encouraged to define aliases within a top-level file in
+# the $ZSH_CUSTOM folder, with .zsh extension. Examples:
+# - $ZSH_CUSTOM/aliases.zsh
+# - $ZSH_CUSTOM/macos.zsh
+# For a full list of active aliases, run `alias`.
+#
+# Example aliases
+# alias zshconfig="mate ~/.zshrc"
+# alias ohmyzsh="mate ~/.oh-my-zsh"
+export MISE_LOG_LEVEL=error
+eval "$(/Users/camiloavelar/.local/bin/mise activate zsh)"
 
-# Prevent duplicates of PATH variables
-typeset -U PATH
+# opencode
+export PATH=/Users/camiloavelar/.opencode/bin:$PATH
+
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+
+# bun completions
+[ -s "/Users/camiloavelar/.bun/_bun" ] && source "/Users/camiloavelar/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$HOME/.maestro/bin
