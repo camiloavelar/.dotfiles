@@ -190,9 +190,11 @@ done
 echo
 echo "claude worktree sync:"
 # Opens worktrees that Claude creates (Bash git worktree add / wt switch,
-# EnterWorktree, subagent isolation) as linked herdr spaces, and closes them
-# when the checkout is removed. settings.json is not in this repo, so the hook
-# entries are merged into it, once per mode.
+# EnterWorktree, --worktree, subagent isolation) as linked herdr spaces, and
+# closes them when the checkout is removed. settings.json is not in this repo,
+# so the hook entries are merged into it, once per mode. Entries from the old
+# WorktreeCreate/WorktreeRemove takeover are dropped: those replaced Claude's
+# own worktree creation and broke it whenever the script failed.
 claude_dir="$HOME/.claude"
 sync_hook="$claude_dir/hooks/herdr-worktree-sync.sh"
 link "$repo/claude/herdr-worktree-sync.sh" "$sync_hook"
@@ -207,11 +209,21 @@ merged=$(jq --arg cmd "bash \"$sync_hook\"" '
               {hooks: [{type: "command", command: $c, timeout: $timeout}]}
               + (if $matcher then {matcher: $matcher} else {} end)
           ] end;
-    add_hook("PreToolUse"; "Bash"; "pre"; 10)
+    def drop_hook($event; $mode):
+        "\($cmd) \($mode)" as $c
+        | if .hooks[$event] == null then .
+          else .hooks[$event] |= map(select(all(.hooks[]?; .command != $c)))
+            | if .hooks[$event] == [] then del(.hooks[$event]) else . end
+          end;
+    drop_hook("WorktreeCreate"; "create")
+    | drop_hook("WorktreeRemove"; "remove")
+    | add_hook("PreToolUse"; "Bash"; "pre"; 10)
     | add_hook("PostToolUse"; "Bash"; "post"; 30)
     | add_hook("PostToolUseFailure"; "Bash"; "post"; 30)
-    | add_hook("WorktreeCreate"; null; "create"; 120)
-    | add_hook("WorktreeRemove"; null; "remove"; 60)
+    | add_hook("PostToolUse"; "EnterWorktree|ExitWorktree"; "sync"; 30)
+    | add_hook("SessionStart"; null; "sync"; 30)
+    | add_hook("SubagentStart"; null; "sync"; 30)
+    | add_hook("SubagentStop"; null; "sync"; 30)
 ' "$settings")
 if [[ $merged == "$(jq . "$settings")" ]]; then
     echo "  ok       $settings"

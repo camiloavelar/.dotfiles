@@ -30,7 +30,9 @@ appears by itself after each fork build.
 as linked herdr spaces (nested under the repo, no focus, one shell tab) and
 closes them when the checkout is removed. It covers Bash (`git worktree add`,
 `wt switch`, `git worktree remove/prune`, `wt remove`) and Claude's own
-worktrees (`EnterWorktree`, `--worktree`, subagent isolation). `herdr/install.sh`
+worktrees (`EnterWorktree`, `--worktree`, subagent isolation). It only
+observes: Claude still creates and removes its worktrees itself, so
+`.worktreeinclude` and branch cleanup keep working. `herdr/install.sh`
 links it into `~/.claude/hooks/` and registers the hooks in
 `~/.claude/settings.json`. Log: `~/.claude/hooks/herdr-worktree-sync.log`.
 

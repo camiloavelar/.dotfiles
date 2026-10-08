@@ -2,12 +2,19 @@
 # Keep herdr workspaces in sync with git worktrees that Claude creates/removes,
 # so they show up nested under their repo in the herdr sidebar.
 #
+# Claude Code keeps creating and removing its own worktrees (so .worktreeinclude,
+# baseRef and branch cleanup still apply); this script only observes and never
+# fails the hook it runs in.
+#
 # Modes (see ~/.claude/settings.json):
-#   pre     PreToolUse/Bash:  mark the start of a worktree add/remove command
-#   post    PostToolUse/Bash: open new worktrees in herdr, close workspaces of
-#                             removed ones
-#   create  WorktreeCreate:   EnterWorktree / --worktree / subagent isolation
-#   remove  WorktreeRemove
+#   pre   PreToolUse/Bash:  snapshot worktrees before a worktree add/remove
+#                           command
+#   post  PostToolUse/Bash: open worktrees the command added, close workspaces
+#                           of removed ones
+#   sync  SessionStart, SubagentStart/Stop, PostToolUse/EnterWorktree|
+#         ExitWorktree: open Claude's own worktrees (<repo>/.claude/worktrees/*:
+#         --worktree, EnterWorktree, subagent isolation) and close workspaces
+#         whose checkout is gone
 #
 # Workspaces are opened with a single shell tab and no focus. herdr-worktrunk
 # treats a workspace without an nvim tab as stale and rebuilds it with the full
@@ -15,15 +22,15 @@
 
 set -uo pipefail
 
-mode="${1:?usage: herdr-worktree-sync.sh pre|post|create|remove}"
+mode="${1:?usage: herdr-worktree-sync.sh pre|post|sync}"
 payload="$(cat)"
-state_dir="${TMPDIR:-/tmp}/claude-herdr-worktree"
+state_dir="${XDG_RUNTIME_DIR:-$HOME/.cache}/claude-herdr-worktree"
 log="$HOME/.claude/hooks/herdr-worktree-sync.log"
 
 add_re='worktree[[:space:]]+add|(^|[^[:alnum:]_-])wt[[:space:]].*switch'
 rm_re='worktree[[:space:]]+(remove|prune)|(^|[^[:alnum:]_-])wt[[:space:]].*remove'
 
-herdr_on() { [[ ${HERDR_ENV:-} == 1 ]] && command -v herdr >/dev/null 2>&1; }
+[[ ${HERDR_ENV:-} == 1 ]] && command -v herdr >/dev/null 2>&1 || exit 0
 
 say() { printf '%s %s %s\n' "$(date +%FT%T)" "$mode" "$*" >>"$log"; }
 
@@ -34,7 +41,6 @@ own_workspace="${HERDR_PANE_ID%%:*}"
 
 open_worktree() {
   local repo_root=$1 path=$2 out
-  herdr_on || return 0
   if out=$(herdr worktree open --cwd "$repo_root" --path "$path" \
     --label "$(label_for "$path")" --no-focus 2>&1); then
     say "opened $path ($(jq -r '.result.workspace.workspace_id // "?"' <<<"$out" 2>/dev/null))"
@@ -43,18 +49,13 @@ open_worktree() {
   fi
 }
 
-close_worktree_workspace() {
-  local path=$1 ws
-  herdr_on || return 0
-  ws=$(herdr workspace list | jq -r --arg p "$path" \
-    'first(.result.workspaces[] | select(.worktree.checkout_path == $p and .worktree.is_linked_worktree) | .workspace_id) // empty')
-  [[ -n $ws && $ws != "$own_workspace" ]] || return 0
-  herdr workspace close "$ws" >/dev/null 2>&1 && say "closed $ws ($path)"
+# Checkout paths that already have a herdr workspace.
+open_paths() {
+  herdr workspace list | jq -r '.result.workspaces[].worktree.checkout_path // empty'
 }
 
 # Close every linked-worktree workspace whose checkout no longer exists.
 close_orphans() {
-  herdr_on || return 0
   local ws path
   while IFS=$'\t' read -r ws path; do
     [[ -n $ws && ! -d $path && $ws != "$own_workspace" ]] || continue
@@ -77,77 +78,58 @@ candidate_dirs() {
     done
 }
 
-# GNU stat first: on Linux `stat -f` is filesystem info and would not fail.
-birth_time() { stat -c %W "$1" 2>/dev/null || stat -f %B "$1" 2>/dev/null || echo 0; }
+# "<repo root>\t<worktree path>" for every worktree of the repos the given
+# directories belong to, one line each, sorted.
+worktrees_of() {
+  local seen=$'\n' dir common
+  while read -r dir; do
+    common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
+    [[ $seen != *$'\n'"$common"$'\n'* ]] || continue
+    seen+="$common"$'\n'
+    git -C "$dir" worktree list --porcelain \
+      | awk -v r="$(dirname "$common")" '/^worktree /{ print r "\t" substr($0, 10) }'
+  done | sort -u
+}
+
+tool_use_id() {
+  local id
+  id=$(jq -r '.tool_use_id // empty' <<<"$payload")
+  [[ $id =~ ^[A-Za-z0-9_-]+$ ]] && printf '%s' "$id"
+}
+
+cwd=$(jq -r '.cwd // empty' <<<"$payload")
+cwd="${cwd:-$PWD}"
 
 case "$mode" in
 pre)
-  grep -qE "$add_re|$rm_re" <<<"$payload" || exit 0
-  id=$(jq -r '.tool_use_id // empty' <<<"$payload")
-  [[ -n $id ]] || exit 0
-  mkdir -p "$state_dir" && date +%s >"$state_dir/$id"
+  cmd=$(jq -r '.tool_input.command // empty' <<<"$payload")
+  grep -qE "$add_re|$rm_re" <<<"$cmd" || exit 0
+  id=$(tool_use_id) || exit 0
+  mkdir -p -m 700 "$state_dir" && [[ -O $state_dir ]] || exit 0
+  candidate_dirs "$cwd" "$cmd" | worktrees_of >"$state_dir/$id"
   ;;
 
 post)
-  id=$(jq -r '.tool_use_id // empty' <<<"$payload")
+  id=$(tool_use_id) || exit 0
   marker="$state_dir/$id"
-  [[ -n $id && -f $marker ]] || exit 0
-  started=$(<"$marker")
-  rm -f "$marker"
-
+  [[ -f $marker ]] || exit 0
   cmd=$(jq -r '.tool_input.command // empty' <<<"$payload")
-  cwd=$(jq -r '.cwd // empty' <<<"$payload")
-  cwd="${cwd:-$PWD}"
 
-  if grep -qE "$add_re" <<<"$cmd"; then
-    seen=$'\n'
-    while read -r dir; do
-      common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
-      [[ $seen != *$'\n'"$common"$'\n'* ]] || continue
-      seen+="$common"$'\n'
-      repo_root=$(dirname "$common")
-      for admin in "$common"/worktrees/*/; do
-        [[ -f $admin/gitdir ]] || continue
-        (($(birth_time "$admin") >= started)) || continue
-        open_worktree "$repo_root" "$(dirname "$(<"$admin/gitdir")")"
-      done
-    done < <(candidate_dirs "$cwd" "$cmd")
-  fi
+  while IFS=$'\t' read -r repo_root path; do
+    open_worktree "$repo_root" "$path"
+  done < <(comm -13 "$marker" <(candidate_dirs "$cwd" "$cmd" | worktrees_of))
+  rm -f "$marker"
 
   grep -qE "$rm_re" <<<"$cmd" && close_orphans
   ;;
 
-create)
-  name=$(jq -r '.name' <<<"$payload")
-  src=$(jq -r '.cwd // empty' <<<"$payload")
-  src="${src:-${CLAUDE_PROJECT_DIR:-$PWD}}"
-  say "payload $(jq -c . <<<"$payload")"
-
-  # Resolve the main checkout even if src is itself a linked worktree.
-  common=$(git -C "$src" rev-parse --path-format=absolute --git-common-dir) || exit 1
-  repo_root=$(dirname "$common")
-  path="$repo_root/.claude/worktrees/$name"
-  branch="worktree-$name"
-
-  if [[ ! -d $path ]]; then
-    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch"; then
-      git -C "$repo_root" worktree add "$path" "$branch" >&2 || exit 1
-    else
-      # Claude's default baseRef "fresh": branch from origin/<default-branch>.
-      base=$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo HEAD)
-      git -C "$repo_root" worktree add -b "$branch" "$path" "$base" >&2 || exit 1
-    fi
-  fi
-  open_worktree "$repo_root" "$path"
-  echo "$path"
-  ;;
-
-remove)
-  path=$(jq -r '.worktree_path' <<<"$payload")
-  say "payload $(jq -c . <<<"$payload")"
-  close_worktree_workspace "$path"
-  [[ -d $path ]] || exit 0
-  git -C "$path" worktree remove "$path" >&2 || exit 1
+sync)
+  already=$(open_paths)
+  while IFS=$'\t' read -r repo_root path; do
+    [[ $path == "$repo_root/.claude/worktrees/"* ]] || continue
+    grep -qxF "$path" <<<"$already" || open_worktree "$repo_root" "$path"
+  done < <(printf '%s\n' "$cwd" ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR"} | worktrees_of)
+  close_orphans
   ;;
 esac
 
