@@ -24,6 +24,16 @@ sets `[update] channel = "preview"`, which follows every push to the fork's
 Later updates: `herdr update` from a terminal outside herdr. The in-app notice
 appears by itself after each fork build.
 
+### Claude worktrees in the sidebar
+
+`herdr/claude/herdr-worktree-sync.sh` opens worktrees that Claude Code creates
+as linked herdr spaces (nested under the repo, no focus, one shell tab) and
+closes them when the checkout is removed. It covers Bash (`git worktree add`,
+`wt switch`, `git worktree remove/prune`, `wt remove`) and Claude's own
+worktrees (`EnterWorktree`, `--worktree`, subagent isolation). `herdr/install.sh`
+links it into `~/.claude/hooks/` and registers the hooks in
+`~/.claude/settings.json`. Log: `~/.claude/hooks/herdr-worktree-sync.log`.
+
 ### kitty
 
 `kitty/kitty.conf` and `kitty/current-theme.conf` (Catppuccin Mocha) go to

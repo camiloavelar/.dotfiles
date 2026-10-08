@@ -188,5 +188,39 @@ for integration in claude; do
 done
 
 echo
+echo "claude worktree sync:"
+# Opens worktrees that Claude creates (Bash git worktree add / wt switch,
+# EnterWorktree, subagent isolation) as linked herdr spaces, and closes them
+# when the checkout is removed. settings.json is not in this repo, so the hook
+# entries are merged into it, once per mode.
+claude_dir="$HOME/.claude"
+sync_hook="$claude_dir/hooks/herdr-worktree-sync.sh"
+link "$repo/claude/herdr-worktree-sync.sh" "$sync_hook"
+
+settings="$claude_dir/settings.json"
+[[ -e $settings ]] || echo '{}' >"$settings"
+merged=$(jq --arg cmd "bash \"$sync_hook\"" '
+    def add_hook($event; $matcher; $mode; $timeout):
+        "\($cmd) \($mode)" as $c
+        | if any(.hooks[$event][]?.hooks[]?; .command == $c) then .
+          else .hooks[$event] += [
+              {hooks: [{type: "command", command: $c, timeout: $timeout}]}
+              + (if $matcher then {matcher: $matcher} else {} end)
+          ] end;
+    add_hook("PreToolUse"; "Bash"; "pre"; 10)
+    | add_hook("PostToolUse"; "Bash"; "post"; 30)
+    | add_hook("PostToolUseFailure"; "Bash"; "post"; 30)
+    | add_hook("WorktreeCreate"; null; "create"; 120)
+    | add_hook("WorktreeRemove"; null; "remove"; 60)
+' "$settings")
+if [[ $merged == "$(jq . "$settings")" ]]; then
+    echo "  ok       $settings"
+else
+    # write in place so the file keeps its permissions
+    printf '%s\n' "$merged" >"$settings"
+    echo "  hooked   $settings"
+fi
+
+echo
 echo "reloading a running server (no-op if none):"
 herdr server reload-config >/dev/null 2>&1 && echo "  reloaded" || echo "  no running server"
