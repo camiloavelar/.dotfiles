@@ -195,7 +195,9 @@ build_tab() {
 build_workspace() {
     local label=$1 path=$2 with_pr=${3:-0} created ws
 
-    created=$(herdr workspace create --cwd "$path" --label "$label")
+    # worktree open (not workspace create) links the space to its repo, so the
+    # sidebar nests it under the primary checkout instead of listing it alone
+    created=$(herdr worktree open --cwd "$repo_root" --path "$path" --label "$label")
     ws=$(jq -r '.result.workspace.workspace_id' <<<"$created")
     herdr tab rename "$(jq -r '.result.tab.tab_id' <<<"$created")" zsh >/dev/null
 
