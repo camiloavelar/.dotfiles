@@ -533,7 +533,7 @@ export default class Pomodoro extends View {
     // On a break, how many agents are waiting on you, pinned to the phase icon.
     const waiting = s.phase === "focus" ? 0 : agents().filter((x) => x.status === "blocked").length;
     const alert = Boolean(shared(ALERT));
-    return h_flex().id("root").size_full().pr(10).items_center().justify_end().bg(t.chrome).border_b(1).border_color(t.border)
+    return h_flex().id("root").size_full().items_center().justify_start().bg(t.chrome).border_b(1).border_color(t.border)
       .child(h_flex().id("chip").h(26).px(8).gap(6).flex_none().items_center().rounded(6).cursor_pointer()
         .text_size(12).bg(on ? t.selected : t.chrome).text_color(s.running ? t.foreground : t.muted)
         .hover((st) => st.bg(t.hover))

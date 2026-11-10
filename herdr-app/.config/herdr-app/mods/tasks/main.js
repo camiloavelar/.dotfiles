@@ -586,7 +586,7 @@ export default class Tasks extends View {
     // Left-aligned in a block just wider than the pill, so it sits as close to Simulator as the
     // tab bar's own buttons sit to each other.
     return h_flex().id("tasks-chip").size_full().items_center().justify_start().bg(t.chrome).border_b(1).border_color(t.border)
-      .child(h_flex().id("tasks-chip-btn").h(26).px(8).gap(5).items_center().rounded(6).text_size(12)
+      .child(h_flex().id("tasks-chip-btn").min_w(67).justify_center().h(26).px(8).gap(5).items_center().rounded(6).text_size(12)
         .bg(on ? t.selected : t.chrome).text_color(on ? t.foreground : t.muted).hover((s) => s.bg(t.hover))
         .on_click(() => this.togglePanel())
         .child(working ? svg(SPINNER).size(12).text_color(t.working).spin(900) : svg(ICON("list")).size(14))
