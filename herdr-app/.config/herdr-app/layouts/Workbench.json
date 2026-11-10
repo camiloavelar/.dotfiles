@@ -95,6 +95,20 @@
               "window_drag": true
             },
             {
+              "id": "tasks-chip",
+              "type": "block",
+              "content": {
+                "mod": "tasks",
+                "props": {
+                  "compact": true
+                }
+              },
+              "size": {
+                "px": 80
+              },
+              "window_drag": true
+            },
+            {
               "id": "pomodoro-chip",
               "type": "block",
               "size": {
@@ -184,6 +198,16 @@
                           "panel": true
                         }
                       }
+                    },
+                    {
+                      "id": "tasks",
+                      "content": {
+                        "mod": "tasks",
+                        "props": {
+                          "panel": true
+                        }
+                      },
+                      "type": "block"
                     }
                   ],
                   "active": "files"

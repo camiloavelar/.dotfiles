@@ -1,7 +1,7 @@
 # Installing this Herdr app config
 
 This folder is the personal part of `~/.config/herdr-app` for the Herdr desktop app:
-keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 11 mods.
+keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 12 mods.
 `sync.sh` copies it in (`install`) and back out (`capture`); its header lists exactly
 which files it carries and why they are copied, not stowed.
 
@@ -24,7 +24,7 @@ which files it carries and why they are copied, not stowed.
 5. **Show the layout.** `herdr-app do layout.switch --name Workbench`, then
    `herdr-app status` and `herdr-app shot /tmp/workbench.png`; look at the picture. Done
    when `"layout": "Workbench"`, `"errors": []`, and the shot has the grouped Spaces and
-   Agents sidebar, the tab bar with Files / Changes / Simulator / 🍅 and the ports button
+   Agents sidebar, the tab bar with Files / Changes / Simulator / Tasks / 🍅 and the ports button
    bottom right.
 6. **Hand over** the person's part (below), and what you skipped or saw fail.
 
@@ -39,6 +39,10 @@ which files it carries and why they are copied, not stowed.
 - `herdr-sim`: runs `xcrun simctl`, `adb`, and `npx serve-sim@0.1.49` (downloads from
   npm on first use); its Android stream serves frames on 127.0.0.1 without auth.
 - `sessionizer`: runs `find` on `~/projects` and `~/personal`, and `git rev-parse`.
+- `tasks`: every 3s runs `find`, `stat`, `grep`, `tail`, `git rev-parse`, and `hc get` /
+  `hc read` (the agent's last 40 screen lines); reads `~/.claude/sessions/` and the full
+  Claude Code conversation logs in `~/.claude/projects/`, and shows their commands, edits
+  and output in its panel.
 - `prefix`, `space-nav`, `agent-nav`, `herdr-sim-screen`, `tabs-herdr-sim`: none.
 
 ## The person's part

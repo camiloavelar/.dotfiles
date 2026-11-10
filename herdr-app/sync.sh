@@ -20,7 +20,7 @@ home=${HERDR_APP_HOME:-$HOME/.config/herdr-app}
 
 FILES=(keys.json settings.json layouts/Workbench.json themes/black.json themes/tokyo-night.json)
 MODS=(prefix space-nav agent-nav agents-grouped spaces-grouped sessionizer
-      live-ports pomodoro herdr-sim herdr-sim-screen tabs-herdr-sim)
+      live-ports pomodoro tasks herdr-sim herdr-sim-screen tabs-herdr-sim)
 EXCLUDES=(--exclude '*.d.ts' --exclude jsconfig.json --exclude .cache/ --exclude '*.jpg'
           --exclude '*.bak*' --exclude '*.error')
 
