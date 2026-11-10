@@ -24,7 +24,7 @@ which files it carries and why they are copied, not stowed.
 5. **Show the layout.** `herdr-app do layout.switch --name Workbench`, then
    `herdr-app status` and `herdr-app shot /tmp/workbench.png`; look at the picture. Done
    when `"layout": "Workbench"`, `"errors": []`, and the shot has the grouped Spaces and
-   Agents sidebar, the tab bar with Files / Changes / Simulator / Tasks / 🍅 and the ports button
+   Agents sidebar, the tab bar with Files / Simulator / Tasks / 🍅 and the ports button
    bottom right.
 6. **Hand over** the person's part (below), and what you skipped or saw fail.
 
