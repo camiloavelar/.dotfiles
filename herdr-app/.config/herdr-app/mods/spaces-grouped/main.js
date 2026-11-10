@@ -265,6 +265,7 @@ export default class Spaces extends View {
       const file = `${CACHE}/${pic.id.replace(/[^\w.-]+/g, "_")}.png`;
       if (!(await (this.got[file] ??= this.download(pic.sources, `${appHome()}/${file}`)))) return;
       this.pics[repo] = file;
+      setShared("spaces.pics", { ...(shared("spaces.pics") ?? {}), [repo]: file }); // read by agents-grouped
       cx.notify();
     } catch {
       // No network, no curl: the letter stays.

@@ -64,6 +64,8 @@ const SORTS = [
   { id: "grouped", label: "Grouped by space", icon: "layers" },
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[0];
+// The Spaces list's avatar colors (shared "space.colors" holds a name or a hex per space).
+const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
 const SECTION_STATUS = { 4: "blocked", 3: "done", 2: "working" };
 
@@ -507,26 +509,90 @@ export default class Agents extends View {
           .when(!byPriority && top && top !== "idle", (el) => el.child(this.status(t, { status: top }, true)))
           .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
     };
-    // Repo tree: a worktree space nests under its repo's header; a repo whose main
-    // checkout has no agents gets a plain header of its own.
+    // Repo tree (option A): a repo header with its avatar and a summary of every agent in the
+    // repo, worktrees included; each worktree as a branch line under it. Folding a repo hides
+    // its worktrees too. A repo whose main checkout has no agents still gets its header.
+    const pics = shared("spaces.pics") ?? {};
+    const colors = shared("space.colors") ?? {};
+    const byRepo = new Map();
+    for (const g of groups) {
+      const key = g.git?.repo ?? g.id;
+      if (!byRepo.has(key)) byRepo.set(key, []);
+      byRepo.get(key).push(...g.members);
+    }
+    // A count per status, each with the mark its agent rows use: needs you, working,
+    // done (finished, not looked at yet: filled dot) and idle (hollow ring).
+    const summary = (members) => {
+      const n = (st) => members.filter((a) => a.status === st).length;
+      const blocked = n("blocked"), working = n("working"), done = n("done");
+      const idle = members.length - blocked - working - done;
+      const count = (k, mark, color) => h_flex().gap(4).items_center().text_color(t.dim).child(String(k)).child(mark.text_color(color));
+      return h_flex().flex_none().gap(8).items_center().text_size(11).font_weight(400)
+        .when(blocked > 0, (el) => el.child(div().text_color(t.blocked).child(`${blocked} needs you`)))
+        .when(working > 0, (el) => el.child(h_flex().gap(5).items_center().text_color(t.working)
+          .child(svg("mods/workspace-chrome/spinner.svg").size(11).flex_none().text_color(t.working).spin(900))
+          .child(`${working} working`)))
+        .when(done > 0, (el) => el.child(count(done, div().size(6).rounded(3).flex_none().bg(t.done), t.done)))
+        .when(idle > 0, (el) => el.child(count(idle, div().size(6).rounded(3).flex_none().border_1().border_color(t.dim), t.dim)));
+    };
+    const avatar = (repo, space) => {
+      if (pics[repo]) return image(pics[repo]).size(14).flex_none().rounded(4);
+      const c = colors[space?.id] ?? "ansi6";
+      return h_flex().size(14).flex_none().rounded(4).bg(c.startsWith("#") ? c : MARK[c] ?? t[c] ?? t.accent)
+        .items_center().justify_center().text_size(9).font_bold().text_color("#ffffff")
+        .child([...(space?.name ?? "?")][0]?.toUpperCase() ?? "?");
+    };
+    const repoHeader = (id, label, repo, space, gap) => {
+      const open = !this.folded.has(id);
+      return h_flex().id(`rh-${id}`).px(8).pt(gap ? 10 : 4).h(gap ? 34 : 28).flex_none().gap(7).items_center()
+        .text_size(12).font_semibold().text_color(t.muted).cursor_pointer().hover((s) => s.text_color(t.foreground))
+        .on_click((_e, cx) => { open ? this.folded.add(id) : this.folded.delete(id); cx.notify(); })
+        .child(avatar(repo, space))
+        .child(div().flex_1().min_w(0).truncate().child(label))
+        .child(summary(byRepo.get(repo) ?? []))
+        .when(!open, (el) => el.child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
+    };
+    const worktreeHeader = (g) => {
+      const name = g.label.startsWith(`${g.git.name}.`) ? g.label.slice(g.git.name.length + 1) : g.label;
+      return h_flex().id(`wt-${g.id}`).pl(8).pr(8).h(22).flex_none().gap(5).items_center().text_size(11).text_color(t.dim)
+        .child(svg("mods/workspace-chrome/branch.svg").size(11).flex_none().text_color(t.dim))
+        .child(div().min_w(0).truncate().child(name));
+    };
+    // A repo's rows sit a little inside its header, along a thin rail from the avatar's left
+    // edge (the header's 8px padding) down to the middle of the last row.
+    const INDENT = 9, RAIL = 8; // 9: the rail (8px, 1px wide) stays just outside a selected row
+    const body = (id, rows) => div().id(`rb-${id}`).relative().flex_none()
+      .child(div().absolute().left(RAIL).top(0).bottom(15).w(1).bg(t.border))
+      .child(v_flex().pl(INDENT).children(rows));
     const tree = () => {
       const out = [];
       let lastRepo;
-      groups.forEach((g, n) => {
+      let hidden = false; // the current repo is folded
+      let rows = null; // the current repo's rows, flushed into its body
+      const flush = () => { if (rows?.length) out.push(body(`b${out.length}`, rows)); rows = null; };
+      groups.forEach((g) => {
+        if (g.id === "pinned") {
+          out.push(header(g));
+          if (!this.folded.has(g.id)) out.push(...g.members.flatMap(withKids));
+          return;
+        }
         const repo = g.git?.repo ?? g.id;
         const nested = Boolean(g.git?.linked);
-        const newRepo = repo !== lastRepo;
-        lastRepo = repo;
-        if (nested && newRepo) {
-          out.push(div().id(`repo-${n}`).px(8).pt(n ? 18 : 8).h(n ? 40 : 30).flex_none().flex().items_center()
-            .text_size(11).font_medium().text_color(t.dim).child(g.git.name));
+        if (repo !== lastRepo) {
+          flush();
+          lastRepo = repo;
+          const main = nested ? spaces().find((s) => this.repoOf[s.id]?.repo === repo && !this.repoOf[s.id]?.linked) : null;
+          const id = nested ? `repo:${repo}` : g.id;
+          out.push(repoHeader(id, nested ? g.git.name : g.label, repo, nested ? main : spaces().find((s) => s.id === g.members[0]?.space), out.length > 0));
+          hidden = this.folded.has(id);
+          rows = [];
         }
-        const indent = nested ? 12 : 0;
-        out.push(header(g, indent, newRepo && n > 0 && !nested));
-        if (this.folded.has(g.id)) return;
+        if (hidden) return;
+        if (nested) rows.push(worktreeHeader(g));
         const kids = g.members.flatMap(withKids);
-        out.push(...(indent ? kids.map((r, i) => div().id(`${g.id}-in-${i}`).pl(indent).child(r)) : kids));
+        rows.push(...(nested ? kids.map((r, i) => div().id(`${g.id}-in-${i}`).pl(INDENT).child(r)) : kids));
       });
+      flush();
       return out;
     };
     const rows = collapsed
