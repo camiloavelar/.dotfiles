@@ -87,9 +87,26 @@ function parseLedger(text) {
   return { done, started, legacy, plan, lines };
 }
 
+// Each task's state: done (ledger "complete", or every step ticked), working, or pending.
+// Working: a task the ledger mentions but hasn't completed; else `active`, the task the session
+// last dispatched an agent for ("Implement Task 2", "Review Task 2"), until the ledger completes
+// it (SDD writes a task's first ledger line only after it is implemented); else, for inline runs
+// ticking the plan, the first open task with a checked step.
+function assignStates(tasks, done, started, active) {
+  const anyStarted = tasks.some((x) => started.has(x.n) && !done.has(x.n));
+  const activeOpen = active != null && !done.has(active) && tasks.some((x) => x.n === active);
+  let current = false;
+  for (const task of tasks) {
+    const finished = done.has(task.n) || (task.steps > 0 && task.checked === task.steps);
+    if (finished) task.state = "done";
+    else if (anyStarted ? started.has(task.n) : activeOpen ? task.n === active : !current && !started.size && task.checked > 0) { task.state = "working"; current = true; }
+    else task.state = "pending";
+  }
+}
+
 // A plan or SDD workspace under root, as { title, file, tasks: [{n, name, steps, checked, state}] }:
-// `want` ({plan} or {dir}) when given, else the newest one.
-async function load(root, want = null) {
+// `want` ({plan} or {dir}) when given, else the newest one. `active`: see assignStates.
+async function load(root, want = null, active = null) {
   const sdd = `${root}/.superpowers/sdd`, plans = `${root}/docs/superpowers/plans`;
   const r = await exec("find", [sdd, plans, "-maxdepth", "2", "(", "-name", "*.md", "-o", "-name", "plan-path", ")",
     "-exec", "stat", "-f", "%m %N", "{}", "+"], { timeout: 5000 }).catch(() => null);
@@ -139,20 +156,13 @@ async function load(root, want = null) {
   const done = pick.ledger?.done ?? new Set();
   const tasks = plan.tasks.length ? plan.tasks : pick.ledger?.legacy ?? [];
   const started = pick.ledger?.started ?? new Set();
-  const anyStarted = tasks.some((x) => started.has(x.n) && !done.has(x.n));
-  let current = false;
   const paths = new Set(files.map((f) => f.path));
   for (const task of tasks) {
     task.ledgerLine = pick.ledger?.lines?.[task.n] ?? null;
     const report = pick.dir ? `${pick.dir}/task-${task.n}-report.md` : null;
     task.report = report && paths.has(report) ? report : null;
-    const finished = done.has(task.n) || (task.steps > 0 && task.checked === task.steps);
-    if (finished) task.state = "done";
-    // Running: a task the ledger mentions but hasn't completed. Without "Task N:" entries
-    // (inline runs ticking the plan), the first open task with a checked step.
-    else if (anyStarted ? started.has(task.n) : !current && !started.size && task.checked > 0) { task.state = "working"; current = true; }
-    else task.state = "pending";
   }
+  assignStates(tasks, done, started, active);
   const title = (plan.title || (pick.plan ? basename(pick.plan).replace(/\.md$/, "") : "Plan"))
     .replace(/\s+Implementation Plan$/i, "");
   return { title, file: pick.plan, started: Boolean(pick.ledger), tasks };
@@ -184,6 +194,13 @@ function describe(x) {
     case "ToolSearch": return "Loading tools";
     default: return x.name.includes("__") ? x.name.split("__").pop().replace(/_/g, " ") : x.name;
   }
+}
+
+// The plan task an Agent/Task dispatch is for ("Implement Task 2: the rule"), or null.
+function taskOf(x) {
+  if (x.name !== "Agent" && x.name !== "Task") return null;
+  const m = /\bTask\s+(\d+)\b/i.exec(String(x.input?.description ?? ""));
+  return m ? +m[1] : null;
 }
 
 const MAX_DETAIL = 4000;
@@ -253,6 +270,8 @@ function consume(st, d) {
   for (const x of c) {
     if (x.type === "text" && x.text?.trim()) st.steps.push({ kind: "text", key: `${d.uuid}-${st.steps.length}`, text: oneLine(x.text), full: x.text });
     if (x.type === "tool_use") {
+      const n = taskOf(x);
+      if (n != null) st.lastTask = n;
       const s = { kind: "tool", key: x.id, text: describe(x), detail: inputDetail(x), running: true, error: false, output: null };
       st.steps.push(s); st.open.set(x.id, s);
     }
@@ -363,7 +382,7 @@ export default class Tasks extends View {
         const st = next.session && this.sessions.get(next.session.sessionId);
         // The plan this session touched, wherever its repo is.
         const want = st ? await this.sessionPlan(st) : null;
-        next.data = want ? await load(repoOf(want.plan ?? want.dir), want) : null;
+        next.data = want ? await load(repoOf(want.plan ?? want.dir), want, st.lastTask) : null;
         const cwd = location();
         next.root = cwd ? await this.repoRoot(cwd) : null;
         if (panel && !next.data) {
@@ -441,7 +460,7 @@ export default class Tasks extends View {
       if (!path) return;
       const base = (s.cwd && (await this.repoRoot(s.cwd))) || s.cwd || home();
       st = { sessionId: s.sessionId, path, base, offset: null, steps: [], open: new Map(), prompt: null,
-        found: new Map(), seq: 0, planDirty: true, want: null };
+        found: new Map(), seq: 0, planDirty: true, want: null, lastTask: null };
       this.sessions.set(s.sessionId, st);
     }
     await this.readNew(st);
@@ -466,11 +485,15 @@ export default class Tasks extends View {
     if (!size || size === st.offset) return;
     let skipFirst = false;
     if (st.offset == null || size < st.offset) {
-      st.steps = []; st.open = new Map(); st.found = new Map(); st.seq = 0; st.planDirty = true;
-      const g = await exec("grep", ["-E", "superpowers/(plans/|sdd)", st.path], { timeout: 10000 }).catch(() => null);
+      st.steps = []; st.open = new Map(); st.found = new Map(); st.seq = 0; st.planDirty = true; st.lastTask = null;
+      // Plan paths, and agent dispatches naming a task (the last one is the task in progress).
+      const g = await exec("grep", ["-E", "superpowers/(plans/|sdd)|Task [0-9]", st.path], { timeout: 10000 }).catch(() => null);
       for (const line of (g?.stdout ?? "").split("\n")) {
         let d; try { d = JSON.parse(line); } catch { continue; }
         mention(st.found, d, st.base, st.seq++);
+        if (d.type === "assistant" && !d.isSidechain && Array.isArray(d.message?.content)) {
+          for (const x of d.message.content) if (x.type === "tool_use") { const n = taskOf(x); if (n != null) st.lastTask = n; }
+        }
       }
       const lp = await exec("grep", ["-F", "\"type\":\"last-prompt\"", st.path], { timeout: 10000 }).catch(() => null);
       for (const line of (lp?.stdout ?? "").split("\n")) {
@@ -573,6 +596,12 @@ export default class Tasks extends View {
   }
 
   render(cx) {
+    // A switch of agent or folder (another space, tab or pane) refreshes now, not on the next tick.
+    const key = `${followed()?.address ?? ""}|${location() ?? ""}`;
+    if (key !== this.followKey) {
+      if (this.followKey !== undefined) cx.timer.after(1, (cx) => this.refresh(cx));
+      this.followKey = key;
+    }
     return props()?.compact ? this.renderChip() : this.renderPanel();
   }
 
