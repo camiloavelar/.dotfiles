@@ -59,7 +59,8 @@ machine's current files back into the repo after changing things in the app.
 Files are copied, not stowed: Herdr doesn't hot-reload code behind a symlink,
 won't load icons from outside its home, and rewrites settings and layouts itself.
 Herdr's own mods and generated files (`*.d.ts`, `AGENTS.md`, `view.json`,
-`shared.json`, caches, simulator frames) are left out.
+`shared.json`, caches, simulator frames) are left out. An agent installing it on a
+machine follows `herdr-app/AGENTS.md`.
 
 ### kitty
 
