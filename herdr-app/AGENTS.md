@@ -57,6 +57,20 @@ which files it carries and why they are copied, not stowed.
 - `ctrl+b` is the prefix; `ctrl+b` then a key does the rest (table in
   `mods/prefix/main.js`). It takes `ctrl+b` from shells and nvim.
 
+## Adding a mod
+
+1. Read every file of it first (Herdr's own `~/.config/herdr-app/AGENTS.md` says what
+   to tell the person).
+2. **Set its `mod.json` `"place"` to `"none"` before it lands in
+   `~/.config/herdr-app/mods/`.** Herdr docks a mod with any other place the first time
+   it sees the folder, by wrapping the shown layout in a new root: the Workbench's
+   root-only fields stop applying and the macOS title bar comes back as its own row.
+3. Add its blocks to `layouts/Workbench.json` by hand, inside the existing tree. A mod
+   that ships a whole layout or a diff: apply only its insertions, never its file.
+4. `herdr-app check` it, add it to `sync.sh`'s `MODS` and to the lists here and in the
+   README, then `./herdr-app/sync.sh capture`. Done when the check passes and `capture`
+   prints no `WARNING` about the layout's root.
+
 ## Watch out
 
 - The layout's name is the file's: `Workbench`, capital W, in `layout.switch` and in
