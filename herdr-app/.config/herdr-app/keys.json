@@ -78,7 +78,7 @@
     "cmd-right": "send:\u0005",
     "cmd-backspace": "send:\u0015"
   },
-  "layout:herdr-sim": {
+  "layout:Workbench": {
     "cmd-shift-s": "tabs-herdr-sim.herdr-sim"
   }
 }
