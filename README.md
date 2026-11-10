@@ -39,7 +39,7 @@ links it into `~/.claude/hooks/` and registers the hooks in
 ## herdr-app (Herdr desktop app)
 
 `herdr-app/.config/herdr-app/` holds the personal part of `~/.config/herdr-app`:
-`keys.json`, `settings.json`, the `Workbench` layout, the `tokyo-night` theme, and
+`keys.json`, `settings.json`, the `Workbench` layout, the `black` theme (`tokyo-night` kept too), and
 these mods:
 
 - `prefix`: `ctrl+b` then a key, ported from the TUI's `[keys]` (see the table in

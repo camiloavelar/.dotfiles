@@ -5,10 +5,8 @@
   },
   "font_ligatures": false,
   "minimum_contrast": 1.0,
-  "theme": "tokyo-night",
+  "theme": "black",
   "colors": {
-    "accent": "#cba6f7",
-    "chrome": "#181825",
-    "surface": "#313244"
+    "accent": "#cba6f7"
   }
 }

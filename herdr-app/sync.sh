@@ -8,8 +8,8 @@
 # see edits behind it, won't load icons from outside its home, and rewrites
 # settings.json and layouts itself.
 #
-# Only personal files are kept: keys, settings, the Workbench layout, the tokyo-night
-# theme and the mods listed below. Herdr's own mods and layouts, and everything it
+# Only personal files are kept: keys, settings, the Workbench layout, the black and tokyo-night
+# themes and the mods listed below. Herdr's own mods and layouts, and everything it
 # generates (*.d.ts, jsconfig.json, AGENTS.md, view/shared/window.json, caches,
 # simulator frames), stay out.
 
@@ -18,7 +18,7 @@ set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.config/herdr-app
 home=${HERDR_APP_HOME:-$HOME/.config/herdr-app}
 
-FILES=(keys.json settings.json layouts/Workbench.json themes/tokyo-night.json)
+FILES=(keys.json settings.json layouts/Workbench.json themes/black.json themes/tokyo-night.json)
 MODS=(prefix space-nav agent-nav agents-grouped spaces-grouped sessionizer
       live-ports pomodoro herdr-sim herdr-sim-screen tabs-herdr-sim)
 EXCLUDES=(--exclude '*.d.ts' --exclude jsconfig.json --exclude .cache/ --exclude '*.jpg'

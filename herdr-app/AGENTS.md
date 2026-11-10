@@ -1,7 +1,7 @@
 # Installing this Herdr app config
 
 This folder is the personal part of `~/.config/herdr-app` for the Herdr desktop app:
-keys, settings, the `Workbench` layout, the `tokyo-night` theme and 11 mods.
+keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 11 mods.
 `sync.sh` copies it in (`install`) and back out (`capture`); its header lists exactly
 which files it carries and why they are copied, not stowed.
 
