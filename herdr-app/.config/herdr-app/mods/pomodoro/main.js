@@ -7,7 +7,10 @@
 
 import { View, div, svg, image, PathBuilder, Background } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { theme, settings, props, shared, setShared, closeOverlay, notify, playSound, nextCommand, layout, run, agents } from "herdr";
+import { theme, settings, props, shared, setShared, closeOverlay, notify, playSound, nextCommand, layout, run, agents, exec, window as appWindow } from "herdr"; // not `window`: the ring paints with the global one
+
+// Set when a phase ends, cleared by the next chip click or timer action: the chip pulses meanwhile.
+const ALERT = "pomodoro.alert";
 import { KEY, PHASES, DEFAULT_MINUTES, ROUNDS, ACTIONS, load, save, remaining, untouched, clock, hours, focusedSoFar,
   finish, sessions, saveSessions, summary, stepMin, lengthsOf, clone, MAX_MINUTES } from "./timer.js";
 import { away, track, dismiss, name } from "./away.js";
@@ -79,12 +82,23 @@ export default class Pomodoro extends View {
     save(s);
     if (toast) {
       if (!toast.late) playSound("done");
-      notify({ title: toast.title, body: toast.body, level: toast.level, timeout: 8000 });
+      // A minute instead of 8 s: the toast is easy to miss.
+      notify({ title: toast.title, body: toast.body, level: toast.level, timeout: 60000 });
+      if (!toast.late) {
+        setShared(ALERT, Date.now());
+        // Also a macOS notification, seen with Herdr in the background. Title and body go in
+        // as arguments, never into the script text. No sound: Herdr already played one.
+        if (appWindow()?.platform === "macos") {
+          exec("osascript", ["-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)", "-e", "end run",
+            `Pomodoro: ${toast.title}`, toast.body ?? ""]).catch(() => null);
+        }
+      }
     }
     return s.running;
   }
 
   act(name, arg, key = false) {
+    if (shared(ALERT)) setShared(ALERT, null);
     this.tick();
     const s = load();
     const now = Date.now();
@@ -518,14 +532,17 @@ export default class Pomodoro extends View {
     const on = panel && !panel.hidden && body?.active === "pomodoro";
     // On a break, how many agents are waiting on you, pinned to the phase icon.
     const waiting = s.phase === "focus" ? 0 : agents().filter((x) => x.status === "blocked").length;
+    const alert = Boolean(shared(ALERT));
     return h_flex().id("root").size_full().pr(10).items_center().justify_end().bg(t.chrome).border_b(1).border_color(t.border)
       .child(h_flex().id("chip").h(26).px(8).gap(6).flex_none().items_center().rounded(6).cursor_pointer()
         .text_size(12).bg(on ? t.selected : t.chrome).text_color(s.running ? t.foreground : t.muted)
         .hover((st) => st.bg(t.hover))
+        // A phase just ended: the chip glows in the phase color and pulses (native, no timer).
+        .when(alert, (el) => el.bg(color).text_color(t.background).loop("opacity", { from: 0.45, to: 1, period: 1200 }))
         .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-        .on_click(() => this.togglePanel())
+        .on_click(() => { if (alert) setShared(ALERT, null); this.togglePanel(); })
         .child(div().relative().size(14).flex_none()
-          .child(svg(icon(s.phase)).size(14).text_color(s.running ? color : t.muted))
+          .child(svg(icon(s.phase)).size(14).text_color(alert ? t.background : s.running ? color : t.muted))
           .when(waiting > 0, (el) => el.child(div().absolute().top(-6).right(-7).min_w(13).h(13).px(3).rounded(7)
             .bg(t.blocked).border_1().border_color(t.chrome).flex().items_center().justify_center()
             .text_size(9).font_bold().text_color(t.background).child(String(waiting)))))
