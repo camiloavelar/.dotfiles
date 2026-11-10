@@ -1,7 +1,7 @@
 # Installing this Herdr app config
 
 This folder is the personal part of `~/.config/herdr-app` for the Herdr desktop app:
-keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 12 mods.
+keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 13 mods.
 `sync.sh` copies it in (`install`) and back out (`capture`); its header lists exactly
 which files it carries and why they are copied, not stowed.
 
@@ -39,6 +39,9 @@ which files it carries and why they are copied, not stowed.
 - `herdr-sim`: runs `xcrun simctl`, `adb`, and `npx serve-sim@0.1.49` (downloads from
   npm on first use); its Android stream serves frames on 127.0.0.1 without auth.
 - `sessionizer`: runs `find` on `~/projects` and `~/personal`, and `git rev-parse`.
+- `worktrunk`: runs `git rev-parse` and `wt list`; creating a worktree runs
+  `wt --yes switch --create <branch> --no-cd`, and `--yes` approves the repo's own `wt`
+  hooks without asking. Needs worktrunk's `wt` on the PATH.
 - `tasks`: every 3s runs `find`, `stat`, `grep`, `tail`, `git rev-parse`, and `hc get` /
   `hc read` (the agent's last 40 screen lines); reads `~/.claude/sessions/` and the full
   Claude Code conversation logs in `~/.claude/projects/`, and shows their commands, edits

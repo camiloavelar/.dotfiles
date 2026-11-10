@@ -20,6 +20,7 @@ const BINDS = {
   "v": ["pane.split", { direction: "right" }],
   "c": ["tab.new"],
   "f": ["mod.open", { name: "sessionizer" }],
+  "t": ["mod.open", { name: "worktrunk" }],
   "a": ["@nav", { mod: "agents-grouped", token: "agents.nav", popup: "agent-nav" }],
   // unnamed, so tab lists show the agent's live title
   "shift-a": ["tab.new", { argv: ["claude"] }],

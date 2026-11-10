@@ -50,6 +50,8 @@ these mods:
 - `space-nav`, `agent-nav`: popup fallbacks for those when the sidebar is hidden.
 - `sessionizer`: `prefix+f`, folders in `~/projects` and `~/personal`, opens a space
   with `claude`.
+- `worktrunk`: `prefix+t`, the focused repo's worktrees (worktrunk's `wt`); opens one's
+  space or a new one with `claude`, or creates a worktree for a typed branch.
 - `tasks`: a tab bar chip and side panel with the followed Claude agent's latest steps
   and its superpowers plan's progress.
 - Third-party: `live-ports` (VladTemp27/herdr-mods), `pomodoro`
