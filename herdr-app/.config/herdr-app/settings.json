@@ -1,0 +1,14 @@
+{
+  "zoom": 1.0,
+  "sounds": {
+    "enabled": true
+  },
+  "font_ligatures": false,
+  "minimum_contrast": 1.0,
+  "theme": "tokyo-night",
+  "colors": {
+    "accent": "#cba6f7",
+    "chrome": "#181825",
+    "surface": "#313244"
+  }
+}

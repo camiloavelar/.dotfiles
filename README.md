@@ -36,6 +36,31 @@ observes: Claude still creates and removes its worktrees itself, so
 links it into `~/.claude/hooks/` and registers the hooks in
 `~/.claude/settings.json`. Log: `~/.claude/hooks/herdr-worktree-sync.log`.
 
+## herdr-app (Herdr desktop app)
+
+`herdr-app/.config/herdr-app/` holds the personal part of `~/.config/herdr-app`:
+`keys.json`, `settings.json`, the `herdr-sim` layout, the `tokyo-night` theme, and
+these mods:
+
+- `prefix`: `ctrl+b` then a key, ported from the TUI's `[keys]` (see the table in
+  `mods/prefix/main.js`).
+- `spaces-grouped`, `agents-grouped`: clones of Herdr's `spaces` and `agents` with
+  keyboard navigation (`prefix+w`, `prefix+a`), worktrees nested under their repo,
+  and repo owner pictures (from balcsida/herdr-profile-pictures).
+- `space-nav`, `agent-nav`: popup fallbacks for those when the sidebar is hidden.
+- `sessionizer`: `prefix+f`, folders in `~/projects` and `~/personal`, opens a space
+  with `claude`.
+- Third-party: `live-ports` (VladTemp27/herdr-mods), `pomodoro`
+  (jsainthilaire/herdr-pomodoro), `herdr-sim`, `herdr-sim-screen`, `tabs-herdr-sim`.
+
+`./herdr-app/sync.sh install` copies them into `~/.config/herdr-app` (files that
+differ are kept as `.bak-<time>`); `./herdr-app/sync.sh capture` copies the
+machine's current files back into the repo after changing things in the app.
+Files are copied, not stowed: Herdr doesn't hot-reload code behind a symlink,
+won't load icons from outside its home, and rewrites settings and layouts itself.
+Herdr's own mods and generated files (`*.d.ts`, `AGENTS.md`, `view.json`,
+`shared.json`, caches, simulator frames) are left out.
+
 ### kitty
 
 `kitty/kitty.conf` and `kitty/current-theme.conf` (Catppuccin Mocha) go to

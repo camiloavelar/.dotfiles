@@ -1,0 +1,1 @@
+{ "place": "none", "title": "Pomodoro", "overlay": { "kind": "window", "key": "pomodoro", "keep": true, "width": 340 } }
