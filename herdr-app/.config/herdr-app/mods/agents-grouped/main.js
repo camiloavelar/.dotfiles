@@ -111,7 +111,10 @@ export default class Agents extends View {
     const i = this.navList.indexOf(this.nav);
     if (k === "j" || k === "down") this.nav = this.navList[Math.min(i + 1, this.navList.length - 1)] ?? this.nav;
     else if (k === "k" || k === "up") this.nav = this.navList[Math.max(i - 1, 0)] ?? this.nav;
-    else if (k === "enter" || k === "l") {
+    else if ((k === "enter" || k === "l") && this.nav.startsWith("fold:")) {
+      const id = this.nav.slice(5);
+      this.folded.has(id) ? this.folded.delete(id) : this.folded.add(id);
+    } else if (k === "enter" || k === "l") {
       const to = this.nav;
       this.nav = null;
       run("agent.focus", { terminal: to });
@@ -325,7 +328,6 @@ export default class Agents extends View {
     const rest = list.filter((a) => !a.pinned);
     list = [...pinned, ...rest];
     setAgentOrder(list.map((a) => a.address));
-    this.navList = list.map((a) => a.address);
     const token = shared("agents.nav");
     if (token !== this.navToken) {
       this.navToken = token;
@@ -336,11 +338,18 @@ export default class Agents extends View {
       // prefix popup handing focus back to the terminal first.
       cx.timer.after(1, () => this.handle.focus());
       cx.timer.after(80, () => this.handle.focus());
-    } else if (this.nav && ((Date.now() - this.navSince > 300 && !this.handle.is_focused()) || !this.navList.includes(this.nav))) {
-      this.nav = null; // clicked away or the agent ended
+    } else if (this.nav && Date.now() - this.navSince > 300 && !this.handle.is_focused()) {
+      this.nav = null; // clicked away
     }
 
+    // What j/k walk, in screen order: the agents drawn (folded ones aren't) and the headers
+    // that fold them, as "fold:<id>". navMark outlines the one under the cursor.
+    const drawn = [];
+    const navMark = (key) => (el) => el.rounded(6).border_1()
+      .border_color(this.nav === key ? t.accent : "#00000000")
+      .when(this.nav === key, (x) => x.bg(t.selected));
     const withKids = (a, i) => {
+      drawn.push(a.address);
       const subs = collapsed ? [] : this.tree(all, a.address);
       const r = row(a, i, subs);
       if (this.folded.has(a.address)) return [r];
@@ -484,13 +493,15 @@ export default class Agents extends View {
     // indent: a worktree under its repo; gap: a new repo starts (blank line, like the TUI).
     const header = (g, indent = 0, gap = false) => {
       const open = !this.folded.has(g.id);
+      drawn.push(`fold:${g.id}`);
       const top = g.members.reduce((m, a) => ((RANK[a.status] ?? 0) > (RANK[m] ?? 0) ? a.status : m), null);
-      return h_flex()
+      // The space above goes on a wrapper: the highlighted row is just the row, its content centred.
+      return div().id(`hw-${g.id}`).flex_none().pt(gap ? 12 : 4).child(h_flex()
         .id(g.id)
+        .map(navMark(`fold:${g.id}`))
         .px(8)
         .pl(8 + indent)
-        .pt(gap ? 18 : 8)
-        .h(30)
+        .h(26)
         .flex_none()
         .gap(6)
         .items_center()
@@ -507,7 +518,7 @@ export default class Agents extends View {
         .child(div().flex_1())
         .when(!open, (el) => el
           .when(!byPriority && top && top !== "idle", (el) => el.child(this.status(t, { status: top }, true)))
-          .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
+          .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim))));
     };
     // Repo tree (option A): a repo header with its avatar and a summary of every agent in the
     // repo, worktrees included; each worktree as a branch line under it. Folding a repo hides
@@ -544,19 +555,29 @@ export default class Agents extends View {
     };
     const repoHeader = (id, label, repo, space, gap) => {
       const open = !this.folded.has(id);
-      return h_flex().id(`rh-${id}`).px(8).pt(gap ? 10 : 4).h(gap ? 34 : 28).flex_none().gap(7).items_center()
+      drawn.push(`fold:${id}`);
+      // As header(): the gap above on a wrapper, the highlight on the 28px row alone.
+      return div().id(`rhw-${id}`).flex_none().pt(gap ? 6 : 0).child(h_flex().id(`rh-${id}`).map(navMark(`fold:${id}`)).px(8).h(28).flex_none().gap(7).items_center()
         .text_size(12).font_semibold().text_color(t.muted).cursor_pointer().hover((s) => s.text_color(t.foreground))
         .on_click((_e, cx) => { open ? this.folded.add(id) : this.folded.delete(id); cx.notify(); })
         .child(avatar(repo, space))
         .child(div().flex_1().min_w(0).truncate().child(label))
         .child(summary(byRepo.get(repo) ?? []))
-        .when(!open, (el) => el.child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
+        .when(!open, (el) => el.child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim))));
     };
+    // A worktree's branch line; a click folds just that worktree's agents.
     const worktreeHeader = (g) => {
       const name = g.label.startsWith(`${g.git.name}.`) ? g.label.slice(g.git.name.length + 1) : g.label;
-      return h_flex().id(`wt-${g.id}`).pl(8).pr(8).h(22).flex_none().gap(5).items_center().text_size(11).text_color(t.dim)
+      const id = `wt:${g.id}`, open = !this.folded.has(id);
+      drawn.push(`fold:${id}`);
+      return h_flex().id(`wt-${g.id}`).map(navMark(`fold:${id}`)).pl(8).pr(8).h(22).flex_none().gap(5).items_center().text_size(11).text_color(t.dim)
+        .cursor_pointer().hover((s) => s.text_color(t.foreground))
+        .on_click((_e, cx) => { open ? this.folded.add(id) : this.folded.delete(id); cx.notify(); })
         .child(svg("mods/workspace-chrome/branch.svg").size(11).flex_none().text_color(t.dim))
-        .child(div().min_w(0).truncate().child(name));
+        .child(div().flex_1().min_w(0).truncate().child(name))
+        .when(!open, (el) => el
+          .child(div().flex_none().child(String(g.members.length)))
+          .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
     };
     // A repo's rows sit a little inside its header, along a thin rail from the avatar's left
     // edge (the header's 8px padding) down to the middle of the last row.
@@ -589,6 +610,7 @@ export default class Agents extends View {
         }
         if (hidden) return;
         if (nested) rows.push(worktreeHeader(g));
+        if (nested && this.folded.has(`wt:${g.id}`)) return;
         const kids = g.members.flatMap(withKids);
         rows.push(...(nested ? kids.map((r, i) => div().id(`${g.id}-in-${i}`).pl(INDENT).child(r)) : kids));
       });
@@ -600,6 +622,13 @@ export default class Agents extends View {
       : byPriority
         ? groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))])
         : tree();
+    this.navList = drawn;
+    if (this.nav && !drawn.includes(this.nav)) {
+      // Started on a hidden agent: the first one shown. Later, its row went (it ended or got
+      // folded away): leave keyboard nav.
+      this.nav = Date.now() - this.navSince < 300 ? drawn[0] ?? null : null;
+      cx.timer.after(1, (cx) => cx.notify());
+    }
 
     return v_flex()
       .id("agents-root")
