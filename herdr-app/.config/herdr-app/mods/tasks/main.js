@@ -583,7 +583,9 @@ export default class Tasks extends View {
     const on = panel && !panel.hidden && body?.active === "tasks";
     const working = this.data?.tasks?.some((x) => x.state === "working");
     // Painted like the tab bar it sits in (as the Pomodoro chip is): its colour and bottom line.
-    return h_flex().id("tasks-chip").size_full().items_center().justify_center().bg(t.chrome).border_b(1).border_color(t.border)
+    // Left-aligned in a block just wider than the pill, so it sits as close to Simulator as the
+    // tab bar's own buttons sit to each other.
+    return h_flex().id("tasks-chip").size_full().items_center().justify_start().bg(t.chrome).border_b(1).border_color(t.border)
       .child(h_flex().id("tasks-chip-btn").h(26).px(8).gap(5).items_center().rounded(6).text_size(12)
         .bg(on ? t.selected : t.chrome).text_color(on ? t.foreground : t.muted).hover((s) => s.bg(t.hover))
         .on_click(() => this.togglePanel())
