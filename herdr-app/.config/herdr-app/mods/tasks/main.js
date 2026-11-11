@@ -402,6 +402,8 @@ export default class Tasks extends View {
       const sig = this.signature();
       if (sig !== this.sig) { this.sig = sig; cx.notify(); }
       this.busy = false;
+      // The chip copy, always on screen, keeps every agent's progress for the agents list.
+      if (!panel) await this.progressAll().catch(() => {});
       if (this.again) { this.again = false; this.refresh(cx); }
     });
   }
@@ -438,18 +440,15 @@ export default class Tasks extends View {
     return this.roots.get(cwd) || null;
   }
 
-  // The followed agent, its session and (with `withActivity`) its last steps, into `next`.
-  async follow(next, withActivity) {
-    const a = followed();
-    next.agent = a;
-    if (!a || a.app !== "claude-code") return;
+  // A Claude agent's session log state, read up to now (null when it can't be found).
+  async sessionOf(a) {
     let hit = this.logs.get(a.address);
     if (!hit || Date.now() - hit.at > 10000) {
       hit = { at: Date.now(), s: await sessionLog(a.address).catch(() => null) };
       this.logs.set(a.address, hit);
     }
     const s = hit.s;
-    if (!s) return;
+    if (!s) return null;
     let st = this.sessions.get(s.sessionId);
     if (!st) {
       let path = s.guess;
@@ -457,13 +456,42 @@ export default class Tasks extends View {
         const f = await exec("find", [`${home()}/.claude/projects`, "-maxdepth", "2", "-name", `${s.sessionId}.jsonl`], { timeout: 5000 }).catch(() => null);
         path = f?.stdout?.split("\n")[0];
       }
-      if (!path) return;
+      if (!path) return null;
       const base = (s.cwd && (await this.repoRoot(s.cwd))) || s.cwd || home();
       st = { sessionId: s.sessionId, path, base, offset: null, steps: [], open: new Map(), prompt: null,
         found: new Map(), seq: 0, planDirty: true, want: null, lastTask: null };
       this.sessions.set(s.sessionId, st);
     }
     await this.readNew(st);
+    return st;
+  }
+
+  // Every Claude agent running a superpowers plan, as shared "tasks.progress":
+  // { <address>: { done, total, working } }, for the agents list's X/Y labels.
+  async progressAll() {
+    const out = {};
+    for (const a of agents()) {
+      if (a.app !== "claude-code") continue;
+      try {
+        const st = await this.sessionOf(a);
+        const want = st && (await this.sessionPlan(st));
+        const d = want && (await load(repoOf(want.plan ?? want.dir), want, st.lastTask));
+        if (!d?.tasks?.length) continue;
+        out[a.address] = { done: d.tasks.filter((x) => x.state === "done").length, total: d.tasks.length,
+          working: d.tasks.some((x) => x.state === "working") };
+      } catch {}
+    }
+    // setShared redraws every mod: publish only a change.
+    if (JSON.stringify(out) !== JSON.stringify(shared("tasks.progress") ?? {})) setShared("tasks.progress", out);
+  }
+
+  // The followed agent, its session and (with `withActivity`) its last steps, into `next`.
+  async follow(next, withActivity) {
+    const a = followed();
+    next.agent = a;
+    if (!a || a.app !== "claude-code") return;
+    const st = await this.sessionOf(a);
+    if (!st) return;
     next.session = { sessionId: st.sessionId, path: st.path };
     if (!withActivity) return;
     next.act = { prompt: st.prompt, steps: st.steps.slice(-STEPS), spinner: null };

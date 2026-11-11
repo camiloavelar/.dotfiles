@@ -420,6 +420,7 @@ export default class Agents extends View {
           .child(h_flex().w(14).flex_none().items_center().justify_center().child(this.status(t, a, true)));
       }
       const when = this.since(a);
+      const progress = shared("tasks.progress") ?? {};
       const idle = a.status === "idle" && !a.focused;
       const isPinned = a.pinned;
       const pin = div()
@@ -475,6 +476,11 @@ export default class Agents extends View {
         .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
+        // A superpowers plan's progress (tasks mod, shared "tasks.progress"), only while the agent
+        // is working: yellow while a task runs.
+        .when(a.status === "working" && Boolean(progress[a.address]), el => el.child(div().flex_none().text_size(11)
+          .text_color(progress[a.address].working ? t.working : t.dim)
+          .child(`${progress[a.address].done}/${progress[a.address].total}`)))
         .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
         .child(this.status(t, a, byPriority && !isPinned));
     };
