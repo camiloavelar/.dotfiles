@@ -95,6 +95,20 @@
               "window_drag": true
             },
             {
+              "id": "eas-chip",
+              "type": "block",
+              "content": {
+                "mod": "eas-builds",
+                "props": {
+                  "compact": true
+                }
+              },
+              "size": {
+                "px": 120
+              },
+              "window_drag": true
+            },
+            {
               "id": "tasks-chip",
               "type": "block",
               "content": {
@@ -208,6 +222,16 @@
                         }
                       },
                       "type": "block"
+                    },
+                    {
+                      "id": "eas",
+                      "type": "block",
+                      "content": {
+                        "mod": "eas-builds",
+                        "props": {
+                          "panel": true
+                        }
+                      }
                     }
                   ],
                   "active": "files"

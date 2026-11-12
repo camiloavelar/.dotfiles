@@ -54,6 +54,8 @@ these mods:
   space or a new one with `claude`, or creates a worktree for a typed branch.
 - `tasks`: a tab bar chip and side panel with the followed Claude agent's latest steps
   and its superpowers plan's progress.
+- `eas-builds`: a tab bar chip and side panel with the focused repo's EAS builds (status,
+  queue, time, current step from the log) and their store submissions.
 - Third-party: `live-ports` (VladTemp27/herdr-mods), `pomodoro`
   (jsainthilaire/herdr-pomodoro), `herdr-sim`, `herdr-sim-screen`, `tabs-herdr-sim`.
 
