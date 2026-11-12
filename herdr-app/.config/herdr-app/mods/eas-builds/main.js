@@ -79,7 +79,7 @@ async function projectFor(cwd) {
     if (await read(`${d}/eas.json`)) { eas = `${d}/eas.json`; break; }
     if (d === top) break;
   }
-  if (!eas) {
+  if (!eas && g?.code === 0) {
     const f = await exec("find", [top, "-maxdepth", "4", "-name", "eas.json", "-not", "-path", "*/node_modules/*"], { cwd: top }).catch(() => null);
     eas = (f?.stdout ?? "").split("\n").filter(Boolean).sort((a, b) => a.length - b.length)[0] ?? null;
   }
