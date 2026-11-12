@@ -1,7 +1,7 @@
 # Installing this Herdr app config
 
 This folder is the personal part of `~/.config/herdr-app` for the Herdr desktop app:
-keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 14 mods.
+keys, settings, the `Workbench` layout, the `black` theme (and `tokyo-night`) and 15 mods.
 `sync.sh` copies it in (`install`) and back out (`capture`); its header lists exactly
 which files it carries and why they are copied, not stowed.
 
@@ -24,7 +24,7 @@ which files it carries and why they are copied, not stowed.
 5. **Show the layout.** `herdr-app do layout.switch --name Workbench`, then
    `herdr-app status` and `herdr-app shot /tmp/workbench.png`; look at the picture. Done
    when `"layout": "Workbench"`, `"errors": []`, and the shot has the grouped Spaces and
-   Agents sidebar, the tab bar with Files / Simulator / Builds / Tasks / 🍅 and the ports button
+   Agents sidebar, the tab bar with Files / Simulator / Builds / Tasks / caffeinate / 🍅 and the ports button
    bottom right.
 6. **Hand over** the person's part (below), and what you skipped or saw fail.
 
@@ -50,6 +50,8 @@ which files it carries and why they are copied, not stowed.
   runs or waits (else 60s), `eas build:list` and `eas submit:list` with the person's Expo
   login (through `~/.local/bin/mise x --` when `eas` isn't on Herdr's PATH); downloads the
   running build's log; its links run `open`. Needs `eas-cli` (`npm i -g eas-cli`) and `eas login`.
+- `caffeinate`: every 3s runs `ps`; its buttons run `kill` on open-ended `caffeinate`
+  processes and start `caffeinate -i` or `-d` detached (`nohup`), which outlives Herdr.
 - `prefix`, `space-nav`, `agent-nav`, `herdr-sim-screen`, `tabs-herdr-sim`: none.
 
 ## The person's part

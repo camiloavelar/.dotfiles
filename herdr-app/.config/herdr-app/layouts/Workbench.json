@@ -123,6 +123,20 @@
               "window_drag": true
             },
             {
+              "id": "caffeinate-chip",
+              "type": "block",
+              "content": {
+                "mod": "caffeinate",
+                "props": {
+                  "compact": true
+                }
+              },
+              "size": {
+                "px": 42
+              },
+              "window_drag": true
+            },
+            {
               "id": "pomodoro-chip",
               "type": "block",
               "size": {
@@ -228,6 +242,16 @@
                       "type": "block",
                       "content": {
                         "mod": "eas-builds",
+                        "props": {
+                          "panel": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "caffeinate",
+                      "type": "block",
+                      "content": {
+                        "mod": "caffeinate",
                         "props": {
                           "panel": true
                         }

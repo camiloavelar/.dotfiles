@@ -56,6 +56,8 @@ these mods:
   and its superpowers plan's progress.
 - `eas-builds`: a tab bar chip and side panel with the focused repo's EAS builds (status,
   queue, time, current step from the log) and their store submissions.
+- `caffeinate`: a tab bar chip showing whether `caffeinate` keeps the Mac (or the display)
+  awake, and a side panel to toggle either mode.
 - Third-party: `live-ports` (VladTemp27/herdr-mods), `pomodoro`
   (jsainthilaire/herdr-pomodoro), `herdr-sim`, `herdr-sim-screen`, `tabs-herdr-sim`.
 
