@@ -51,7 +51,7 @@ which files it carries and why they are copied, not stowed.
   login (through `~/.local/bin/mise x --` when `eas` isn't on Herdr's PATH); downloads the
   running build's log; its links run `open`. Needs `eas-cli` (`npm i -g eas-cli`) and `eas login`.
 - `caffeinate`: every 3s runs `ps`; its buttons run `kill` on open-ended `caffeinate`
-  processes and start `caffeinate -i` or `-d` detached (`nohup`), which outlives Herdr.
+  processes and start `caffeinate -i` or `-d` (with `-t` for a set time) detached (`nohup`), which outlives Herdr.
 - `prefix`, `space-nav`, `agent-nav`, `herdr-sim-screen`, `tabs-herdr-sim`: none.
 
 ## The person's part
