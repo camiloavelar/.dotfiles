@@ -371,8 +371,9 @@ export default class Tasks extends View {
 
   // Coalesced: a refresh asked for while one runs runs once more after it.
   refresh(cx) {
-    if (this.busy) { this.again = true; return; }
-    this.busy = true;
+    // A run that never finished (it threw, or its task was dropped) stops blocking after a minute.
+    if (this.busy && Date.now() - this.busyAt < 60000) { this.again = true; return; }
+    this.busy = true; this.busyAt = Date.now();
     cx.spawn(async (cx) => {
       const panel = Boolean(props()?.panel);
       // Everything is computed first and swapped in at once, so a redraw never sees half a state.
