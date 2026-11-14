@@ -108,7 +108,9 @@ function assignStates(tasks, done, started, active) {
 // `want` ({plan} or {dir}) when given, else the newest one. `active`: see assignStates.
 async function load(root, want = null, active = null) {
   const sdd = `${root}/.superpowers/sdd`, plans = `${root}/docs/superpowers/plans`;
-  const r = await exec("find", [sdd, plans, "-maxdepth", "2", "(", "-name", "*.md", "-o", "-name", "plan-path", ")",
+  // The session's workspace can live outside root (a worktree's ledger for a plan in the main checkout).
+  const away = want?.dir && !want.dir.startsWith(sdd) ? [want.dir] : [];
+  const r = await exec("find", [sdd, plans, ...away, "-maxdepth", "2", "(", "-name", "*.md", "-o", "-name", "plan-path", ")",
     "-exec", "stat", "-f", "%m %N", "{}", "+"], { timeout: 5000 }).catch(() => null);
   const files = (r?.stdout ?? "").split("\n").filter(Boolean).map((l) => {
     const i = l.indexOf(" ");
@@ -117,7 +119,7 @@ async function load(root, want = null, active = null) {
 
   // SDD workspaces: each folder under sdd (or sdd itself, the old layout) with a ledger or marker.
   const spaces = new Map();
-  for (const f of files.filter((f) => f.path.startsWith(`${sdd}/`))) {
+  for (const f of files.filter((f) => f.path.startsWith(`${sdd}/`) || away.includes(dirname(f.path)))) {
     const dir = dirname(f.path);
     const w = spaces.get(dir) ?? { dir, t: 0, ledger: null, marker: null };
     w.t = Math.max(w.t, f.t);
