@@ -453,6 +453,11 @@ export default class Tasks extends View {
     const s = hit.s;
     if (!s) return null;
     let st = this.sessions.get(s.sessionId);
+    // Entering a worktree moves the log to that cwd's project folder: start over from the new file.
+    if (st && st.path !== s.guess && (await exec("test", ["-f", s.guess]).catch(() => null))?.code === 0) {
+      this.sessions.delete(s.sessionId);
+      st = null;
+    }
     if (!st) {
       let path = s.guess;
       if ((await exec("test", ["-f", path]).catch(() => null))?.code !== 0) {
